@@ -2,7 +2,11 @@ import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import { readSettings, isHookInstalled } from "../lib/claude-settings.js";
-import { HOOK_INSTALL_PATH, AIIGNORE_FILENAME } from "../lib/constants.js";
+import {
+  HOOK_INSTALL_PATH,
+  AIIGNORE_FILENAME,
+  GLOBAL_AIIGNORE_PATH,
+} from "../lib/constants.js";
 import { getCompletionsStatus } from "../lib/completions.js";
 
 function countPatterns(filePath: string): number {
@@ -60,7 +64,20 @@ export async function status(): Promise<void> {
     );
   }
 
-  // .aiignore
+  // .aiignore (global)
+  const globalAiignoreExists = fs.existsSync(GLOBAL_AIIGNORE_PATH);
+  if (globalAiignoreExists) {
+    const patterns = countPatterns(GLOBAL_AIIGNORE_PATH);
+    console.log(
+      `  .aiignore (global): ${chalk.green("✓")} (${patterns} pattern${patterns === 1 ? "" : "s"})`
+    );
+  } else {
+    console.log(
+      `  .aiignore (global): ${chalk.dim("-")} No global ~/.aiignore`
+    );
+  }
+
+  // .aiignore (local)
   if (aiignoreExists) {
     const patterns = countPatterns(aiignorePath);
     console.log(

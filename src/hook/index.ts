@@ -1,8 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
+import os from "node:os";
 import ignore from "ignore";
 
 const AIIGNORE_FILENAME = ".aiignore";
+const GLOBAL_AIIGNORE_PATH = path.join(os.homedir(), AIIGNORE_FILENAME);
 
 async function main(): Promise<void> {
   // Read JSON from stdin
@@ -27,13 +29,49 @@ async function main(): Promise<void> {
     ? filePath
     : path.resolve(cwd, filePath);
 
-  // Load .aiignore
+  // Check global ~/.aiignore first
+  try {
+    const globalContent = fs.readFileSync(GLOBAL_AIIGNORE_PATH, "utf-8");
+    const globalIg = ignore().add(globalContent);
+    // For global blocklist, compute relative path from home dir
+    const relativeToHome = path.relative(os.homedir(), absolute);
+    if (
+      relativeToHome &&
+      !relativeToHome.startsWith("..") &&
+      !path.isAbsolute(relativeToHome) &&
+      globalIg.ignores(relativeToHome)
+    ) {
+      process.stderr.write(
+        `BLOCKED by ~/.aiignore (global): Access to '${filePath}' is denied.\n` +
+          `This file matches a pattern in ~/.aiignore. Remove the pattern to allow access.\n`
+      );
+      process.exit(2);
+    }
+    // Also check with relative path from cwd for patterns that are project-relative
+    const relativeToCwd = path.relative(cwd, absolute);
+    if (
+      relativeToCwd &&
+      !relativeToCwd.startsWith("..") &&
+      !path.isAbsolute(relativeToCwd) &&
+      globalIg.ignores(relativeToCwd)
+    ) {
+      process.stderr.write(
+        `BLOCKED by ~/.aiignore (global): Access to '${filePath}' is denied.\n` +
+          `This file matches a pattern in ~/.aiignore. Remove the pattern to allow access.\n`
+      );
+      process.exit(2);
+    }
+  } catch {
+    // No global .aiignore — continue
+  }
+
+  // Load local .aiignore
   const aiignorePath = path.join(cwd, AIIGNORE_FILENAME);
   let content: string;
   try {
     content = fs.readFileSync(aiignorePath, "utf-8");
   } catch {
-    // No .aiignore → allow everything
+    // No local .aiignore → allow everything
     process.exit(0);
   }
 
@@ -42,7 +80,7 @@ async function main(): Promise<void> {
   // Check if file is blocked
   const relative = path.relative(cwd, absolute);
 
-  // Files outside the project directory are not subject to .aiignore
+  // Files outside the project directory are not subject to local .aiignore
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     process.exit(0);
   }

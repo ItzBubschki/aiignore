@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import ignore, { type Ignore } from "ignore";
-import { AIIGNORE_FILENAME } from "./constants.js";
+import { AIIGNORE_FILENAME, GLOBAL_AIIGNORE_PATH } from "./constants.js";
 
 export function loadAiignore(cwd: string): Ignore | null {
   const filePath = path.join(cwd, AIIGNORE_FILENAME);
@@ -9,6 +9,17 @@ export function loadAiignore(cwd: string): Ignore | null {
   let content: string;
   try {
     content = fs.readFileSync(filePath, "utf-8");
+  } catch {
+    return null;
+  }
+
+  return ignore().add(content);
+}
+
+export function loadGlobalAiignore(): Ignore | null {
+  let content: string;
+  try {
+    content = fs.readFileSync(GLOBAL_AIIGNORE_PATH, "utf-8");
   } catch {
     return null;
   }

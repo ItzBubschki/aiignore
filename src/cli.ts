@@ -4,6 +4,8 @@ import { install } from "./commands/install.js";
 import { uninstall } from "./commands/uninstall.js";
 import { status } from "./commands/status.js";
 import { check } from "./commands/check.js";
+import { suggest } from "./commands/suggest.js";
+import { add } from "./commands/add.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
@@ -32,5 +34,18 @@ program
   .command("check")
   .description("Dry-run: show which files would be blocked by .aiignore")
   .action(check);
+
+program
+  .command("suggest")
+  .description("Auto-detect sensitive files and suggest adding them to .aiignore")
+  .action(suggest);
+
+program
+  .command("add")
+  .description("Add files or directories to .aiignore")
+  .argument("<paths...>", "file or directory paths to block")
+  .option("--local", "force add to local .aiignore (in current directory)")
+  .option("--global", "force add to global ~/.aiignore")
+  .action(add);
 
 program.parse();
