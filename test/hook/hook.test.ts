@@ -19,15 +19,6 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-// Use a subdirectory as the project cwd so that tmpDir (HOME) and cwd don't overlap.
-// This prevents the local .aiignore from being treated as the global ~/.aiignore.
-let projectDir: string;
-
-beforeEach(() => {
-  projectDir = path.join(tmpDir, "project");
-  fs.mkdirSync(projectDir, { recursive: true });
-});
-
 function runHook(
   filePath: string,
   cwd: string
@@ -39,7 +30,6 @@ function runHook(
   try {
     execSync(`echo '${input}' | bun ${HOOK_SCRIPT}`, {
       cwd,
-      env: { ...process.env, HOME: tmpDir },
       stdio: ["pipe", "pipe", "pipe"],
       timeout: 10_000,
     });
@@ -54,27 +44,27 @@ function runHook(
 
 describe("hook", () => {
   test("blocks file matching local .aiignore", () => {
-    fs.writeFileSync(path.join(projectDir, ".aiignore"), ".env\nsecrets/\n");
-    fs.writeFileSync(path.join(projectDir, ".env"), "SECRET=abc");
+    fs.writeFileSync(path.join(tmpDir, ".aiignore"), ".env\nsecrets/\n");
+    fs.writeFileSync(path.join(tmpDir, ".env"), "SECRET=abc");
 
-    const result = runHook(".env", projectDir);
+    const result = runHook(".env", tmpDir);
     expect(result.exitCode).toBe(2);
     expect(result.stderr).toContain("BLOCKED by .aiignore");
     expect(result.stderr).toContain(".env");
   });
 
   test("allows file not matching .aiignore", () => {
-    fs.writeFileSync(path.join(projectDir, ".aiignore"), ".env\nsecrets/\n");
-    fs.writeFileSync(path.join(projectDir, "readme.txt"), "hello");
+    fs.writeFileSync(path.join(tmpDir, ".aiignore"), ".env\nsecrets/\n");
+    fs.writeFileSync(path.join(tmpDir, "readme.txt"), "hello");
 
-    const result = runHook("readme.txt", projectDir);
+    const result = runHook("readme.txt", tmpDir);
     expect(result.exitCode).toBe(0);
   });
 
   test("allows everything when no .aiignore exists", () => {
-    fs.writeFileSync(path.join(projectDir, ".env"), "SECRET=abc");
+    fs.writeFileSync(path.join(tmpDir, ".env"), "SECRET=abc");
 
-    const result = runHook(".env", projectDir);
+    const result = runHook(".env", tmpDir);
     expect(result.exitCode).toBe(0);
   });
 
