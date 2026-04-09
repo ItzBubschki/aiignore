@@ -1,0 +1,37 @@
+name: NPM Token Expiry Reminder
+
+on:
+  schedule:
+    # Runs every Monday at 9:00 UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+
+jobs:
+  check-token:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    env:
+      # Set this to the date your NPM token expires (YYYY-MM-DD)
+      TOKEN_EXPIRY: '2026-07-08'
+    steps:
+      - name: Check if token expires within 7 days
+        run: |
+          expiry=$(date -d "$TOKEN_EXPIRY" +%s)
+          now=$(date +%s)
+          days_left=$(( (expiry - now) / 86400 ))
+          echo "Days until NPM token expires: $days_left"
+          if [ "$days_left" -le 7 ]; then
+            echo "TOKEN_EXPIRING=true" >> $GITHUB_ENV
+            echo "DAYS_LEFT=$days_left" >> $GITHUB_ENV
+          fi
+
+      - name: Create reminder issue
+        if: env.TOKEN_EXPIRING == 'true'
+        run: |
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "NPM_TOKEN expires in ${{ env.DAYS_LEFT }} days" \
+            --body "Your NPM access token expires on ${{ env.TOKEN_EXPIRY }}. Generate a new one at https://www.npmjs.com/settings/tokens and update the \`NPM_TOKEN\` secret in this repo's settings."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
