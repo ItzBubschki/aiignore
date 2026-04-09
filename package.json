@@ -1,0 +1,41 @@
+{
+  "name": "aiignore",
+  "version": "0.1.0",
+  "description": "Protect sensitive files from AI coding assistants with .aiignore",
+  "type": "module",
+  "bin": {
+    "aiignore": "./dist/cli.js",
+    "ai-guard": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "bun run build"
+  },
+  "keywords": [
+    "ai",
+    "aiignore",
+    "claude",
+    "security",
+    "gitignore",
+    "hooks"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/laurinniemeyer/aiignore"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "ignore": "^7.0.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  }
+}
