@@ -6,6 +6,8 @@ import { status } from "./commands/status.js";
 import { check } from "./commands/check.js";
 import { suggest } from "./commands/suggest.js";
 import { add } from "./commands/add.js";
+import { list } from "./commands/list.js";
+import { audit } from "./commands/audit.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
@@ -42,10 +44,24 @@ program
 
 program
   .command("add")
-  .description("Add files or directories to .aiignore")
-  .argument("<paths...>", "file or directory paths to block")
+  .description(
+    "Add patterns to .aiignore (quote globs to prevent shell expansion, e.g. '*.key')"
+  )
+  .argument("<paths...>", "patterns to block (quote wildcards: '*.env', '*.key')")
   .option("--local", "force add to local .aiignore (in current directory)")
   .option("--global", "force add to global ~/.aiignore")
   .action(add);
+
+program
+  .command("list")
+  .description("Show patterns currently blocked (globally and per-project)")
+  .action(list);
+
+program
+  .command("audit")
+  .description("Show recent blocked access attempts")
+  .option("--lines <n>", "number of entries to show", "20")
+  .option("--clear", "clear the audit log")
+  .action(audit);
 
 program.parse();

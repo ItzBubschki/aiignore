@@ -5,6 +5,17 @@ import ignore from "ignore";
 
 const AIIGNORE_FILENAME = ".aiignore";
 const GLOBAL_AIIGNORE_PATH = path.join(os.homedir(), AIIGNORE_FILENAME);
+const AUDIT_LOG_PATH = path.join(os.homedir(), ".claude", "aiignore-audit.log");
+
+function logBlocked(source: "global" | "local", cwd: string, filePath: string): void {
+  try {
+    const timestamp = new Date().toISOString();
+    const line = `[${timestamp}] BLOCKED ${source} ${cwd} ${filePath}\n`;
+    fs.appendFileSync(AUDIT_LOG_PATH, line);
+  } catch {
+    // Fire-and-forget: never break the hook
+  }
+}
 
 async function main(): Promise<void> {
   // Read JSON from stdin
@@ -41,6 +52,7 @@ async function main(): Promise<void> {
       !path.isAbsolute(relativeToHome) &&
       globalIg.ignores(relativeToHome)
     ) {
+      logBlocked("global", cwd, filePath);
       process.stderr.write(
         `BLOCKED by ~/.aiignore (global): Access to '${filePath}' is denied.\n` +
           `This file matches a pattern in ~/.aiignore. Remove the pattern to allow access.\n`
@@ -55,6 +67,7 @@ async function main(): Promise<void> {
       !path.isAbsolute(relativeToCwd) &&
       globalIg.ignores(relativeToCwd)
     ) {
+      logBlocked("global", cwd, filePath);
       process.stderr.write(
         `BLOCKED by ~/.aiignore (global): Access to '${filePath}' is denied.\n` +
           `This file matches a pattern in ~/.aiignore. Remove the pattern to allow access.\n`
@@ -86,6 +99,7 @@ async function main(): Promise<void> {
   }
 
   if (ig.ignores(relative)) {
+    logBlocked("local", cwd, filePath);
     process.stderr.write(
       `BLOCKED by .aiignore: Access to '${filePath}' is denied.\n` +
         `This file matches a pattern in ${AIIGNORE_FILENAME}. Remove the pattern to allow access.\n`

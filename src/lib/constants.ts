@@ -12,3 +12,4 @@ export const CLAUDE_SETTINGS_PATH = path.join(
 export const AIIGNORE_FILENAME = ".aiignore";
 export const GLOBAL_AIIGNORE_PATH = path.join(os.homedir(), AIIGNORE_FILENAME);
 export const HOOK_MATCHER = "Read|Write|Edit|MultiEdit";
+export const AUDIT_LOG_PATH = path.join(os.homedir(), ".claude", "aiignore-audit.log");
