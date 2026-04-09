@@ -3,6 +3,7 @@ import path from "node:path";
 import chalk from "chalk";
 import { readSettings, isHookInstalled } from "../lib/claude-settings.js";
 import { HOOK_INSTALL_PATH, AIIGNORE_FILENAME } from "../lib/constants.js";
+import { getCompletionsStatus } from "../lib/completions.js";
 
 function countPatterns(filePath: string): number {
   const content = fs.readFileSync(filePath, "utf-8");
@@ -41,6 +42,22 @@ export async function status(): Promise<void> {
     );
   } else {
     console.log(`  Hook binary:      ${chalk.red("✗")} Not found`);
+  }
+
+  // Shell completions
+  const completions = getCompletionsStatus();
+  if (completions.installed) {
+    console.log(
+      `  Completions:      ${chalk.green("✓")} (${completions.shell}: ${completions.path})`
+    );
+  } else if (completions.shell) {
+    console.log(
+      `  Completions:      ${chalk.red("✗")} Not installed for ${completions.shell}`
+    );
+  } else {
+    console.log(
+      `  Completions:      ${chalk.dim("-")} Could not detect shell`
+    );
   }
 
   // .aiignore

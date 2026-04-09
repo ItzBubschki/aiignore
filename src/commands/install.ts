@@ -10,19 +10,25 @@ import {
   isHookInstalled,
   addHook,
 } from "../lib/claude-settings.js";
+import { installCompletions } from "../lib/completions.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function findHookBundle(): string {
-  // hook-bundle.js is pre-bundled by tsup alongside cli.js in dist/
+function findHookSource(): string {
+  // 1. Pre-bundled hook (exists in dist/ after build, used by npx/npm)
   const bundlePath = path.resolve(__dirname, "hook-bundle.js");
-
   if (fs.existsSync(bundlePath)) {
     return bundlePath;
   }
 
+  // 2. Raw source file (for local dev via `bun src/cli.ts`)
+  const sourcePath = path.resolve(__dirname, "../hook/index.ts");
+  if (fs.existsSync(sourcePath)) {
+    return sourcePath;
+  }
+
   throw new Error(
-    "Could not find hook-bundle.js. Run 'npm run build' first."
+    "Could not find hook source. Run 'bun run build' first, or run from the project root."
   );
 }
 
@@ -56,12 +62,12 @@ export async function install(): Promise<void> {
   fs.mkdirSync(HOOKS_DIR, { recursive: true });
 
   // Find the pre-bundled hook source (all deps inlined, no node_modules needed)
-  const hookBundle = findHookBundle();
+  const hookSource = findHookSource();
   console.log(chalk.dim("Compiling hook binary..."));
 
   try {
     execSync(
-      `bun build --compile "${hookBundle}" --outfile "${HOOK_INSTALL_PATH}"`,
+      `bun build --compile "${hookSource}" --outfile "${HOOK_INSTALL_PATH}"`,
       { stdio: "pipe" }
     );
   } catch (error) {
@@ -74,6 +80,19 @@ export async function install(): Promise<void> {
   // Add hook to Claude Code settings
   const updated = addHook(settings);
   writeSettings(updated);
+
+  // Install shell completions
+  const completionResult = installCompletions();
+  if (completionResult) {
+    console.log(
+      chalk.green(`Shell completions installed for ${completionResult.shell}:`)
+    );
+    console.log(chalk.dim(`  ${completionResult.path}`));
+  } else {
+    console.log(
+      chalk.dim("Could not detect shell — skipping completion install.")
+    );
+  }
 
   console.log(chalk.green("\nAI Guard installed successfully!\n"));
   console.log("Create a .aiignore file in any project to protect sensitive files:\n");

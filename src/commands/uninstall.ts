@@ -7,6 +7,7 @@ import {
   isHookInstalled,
   removeHook,
 } from "../lib/claude-settings.js";
+import { uninstallCompletions } from "../lib/completions.js";
 
 export async function uninstall(): Promise<void> {
   const settings = readSettings();
@@ -26,6 +27,9 @@ export async function uninstall(): Promise<void> {
   } catch {
     // Binary may already be gone
   }
+
+  // Remove shell completions
+  uninstallCompletions();
 
   console.log(chalk.green("AI Guard hook has been uninstalled."));
   console.log(
