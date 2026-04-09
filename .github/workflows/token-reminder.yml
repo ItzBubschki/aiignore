@@ -26,12 +26,23 @@ jobs:
             echo "DAYS_LEFT=$days_left" >> $GITHUB_ENV
           fi
 
-      - name: Create reminder issue
+      - name: Check for existing issue
         if: env.TOKEN_EXPIRING == 'true'
+        run: |
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --search "NPM_TOKEN expires" --state open --json number --jq 'length')
+          if [ "$EXISTING" -gt 0 ]; then
+            echo "ISSUE_EXISTS=true" >> $GITHUB_ENV
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create reminder issue
+        if: env.TOKEN_EXPIRING == 'true' && env.ISSUE_EXISTS != 'true'
         run: |
           gh issue create \
             --repo "$GITHUB_REPOSITORY" \
             --title "NPM_TOKEN expires in ${{ env.DAYS_LEFT }} days" \
-            --body "Your NPM access token expires on ${{ env.TOKEN_EXPIRY }}. Generate a new one at https://www.npmjs.com/settings/tokens and update the \`NPM_TOKEN\` secret in this repo's settings."
+            --body "Your NPM access token expires on ${{ env.TOKEN_EXPIRY }}. Generate a new one at https://www.npmjs.com/settings/tokens and update the \`NPM_TOKEN\` secret in this repo's settings." \
+            --assignee ItzBubschki
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
