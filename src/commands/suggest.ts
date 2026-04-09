@@ -50,27 +50,28 @@ function isSensitive(relativePath: string): boolean {
   return SENSITIVE_PATTERNS.some((check) => check(basename, relativePath));
 }
 
-function walkFiles(cwd: string): string[] {
-  const entries = fs.readdirSync(cwd, { recursive: true, withFileTypes: true });
-  const files: string[] = [];
+function walkFiles(dir: string, cwd: string, files: string[] = []): string[] {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return files;
+  }
 
   for (const entry of entries) {
-    const relativePath =
-      entry.parentPath !== undefined
-        ? path.relative(cwd, path.join(entry.parentPath, entry.name))
-        : entry.name;
+    if (SKIP_DIRS.has(entry.name)) continue;
 
-    const parts = relativePath.split(path.sep);
-    if (parts.some((part) => SKIP_DIRS.has(part))) {
-      continue;
-    }
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.relative(cwd, fullPath);
 
-    if (entry.isFile()) {
+    if (entry.isDirectory()) {
+      walkFiles(fullPath, cwd, files);
+    } else if (entry.isFile()) {
       files.push(relativePath);
     }
   }
 
-  return files.sort();
+  return files;
 }
 
 /**
@@ -78,8 +79,8 @@ function walkFiles(cwd: string): string[] {
  * Returns a sorted list of relative paths.
  */
 export function detectSensitiveFiles(cwd: string): string[] {
-  const allFiles = walkFiles(cwd);
-  return allFiles.filter((file) => isSensitive(file));
+  const allFiles = walkFiles(cwd, cwd);
+  return allFiles.filter((file) => isSensitive(file)).sort();
 }
 
 /**

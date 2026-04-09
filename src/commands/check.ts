@@ -10,28 +10,28 @@ import { AIIGNORE_FILENAME } from "../lib/constants.js";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist"]);
 
-function walkFiles(cwd: string): string[] {
-  const entries = fs.readdirSync(cwd, { recursive: true, withFileTypes: true });
-  const files: string[] = [];
+function walkFiles(dir: string, cwd: string, files: string[] = []): string[] {
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return files;
+  }
 
   for (const entry of entries) {
-    // Skip files inside directories we want to exclude
-    const relativePath =
-      entry.parentPath !== undefined
-        ? path.relative(cwd, path.join(entry.parentPath, entry.name))
-        : entry.name;
+    if (SKIP_DIRS.has(entry.name)) continue;
 
-    const parts = relativePath.split(path.sep);
-    if (parts.some((part) => SKIP_DIRS.has(part))) {
-      continue;
-    }
+    const fullPath = path.join(dir, entry.name);
+    const relativePath = path.relative(cwd, fullPath);
 
-    if (entry.isFile()) {
+    if (entry.isDirectory()) {
+      walkFiles(fullPath, cwd, files);
+    } else if (entry.isFile()) {
       files.push(relativePath);
     }
   }
 
-  return files.sort();
+  return files;
 }
 
 export async function check(): Promise<void> {
@@ -47,7 +47,7 @@ export async function check(): Promise<void> {
     return;
   }
 
-  const allFiles = walkFiles(cwd);
+  const allFiles = walkFiles(cwd, cwd).sort();
 
   const blockedLocal: string[] = [];
   const blockedGlobal: string[] = [];
