@@ -1,6 +1,6 @@
 {
   "name": "@aiignore/cli",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Protect sensitive files from AI coding assistants with .aiignore",
   "type": "module",
   "bin": {
