@@ -1,4 +1,4 @@
-# aiignore
+# @aiignore/cli
 
 Protect sensitive files from AI coding assistants using `.aiignore` files.
 
@@ -8,7 +8,7 @@ Drop a `.aiignore` in your project root — just like `.gitignore` — and AI to
 
 ```bash
 # Install the hook (one-time setup, requires bun)
-npx aiignore install
+npx @aiignore/cli install
 
 # Create a .aiignore in any project
 echo ".env" >> .aiignore
@@ -48,6 +48,14 @@ One-time global setup. Compiles a fast native hook binary and registers it with 
 
 Removes the hook from Claude Code settings and deletes the hook binary. Does not delete your `.aiignore` files.
 
+### `aiignore status`
+
+Shows whether the hook is installed and working — checks the settings entry, the hook binary, and whether a `.aiignore` exists in the current directory.
+
+### `aiignore check`
+
+Dry-run that scans the current directory and reports which files would be blocked by `.aiignore`.
+
 ## How It Works
 
 1. `aiignore install` compiles a native binary (via `bun build --compile`) and installs it as a Claude Code [PreToolUse hook](https://docs.anthropic.com/en/docs/claude-code/hooks)
@@ -64,7 +72,6 @@ Removes the hook from Claude Code settings and deletes the hook binary. Does not
 
 ## Requirements
 
-- Node.js 20+
 - [Bun](https://bun.sh) (for compiling the hook binary)
 - Claude Code
 

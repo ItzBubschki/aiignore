@@ -13,7 +13,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
-    "prepublishOnly": "bun run build",
+    "prepublishOnly": "npm run build",
     "preuninstall": "aiignore uninstall"
   },
   "keywords": [
