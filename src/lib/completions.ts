@@ -12,6 +12,14 @@ complete -c aiignore -n "__fish_use_subcommand" -a install -d "Install the Claud
 complete -c aiignore -n "__fish_use_subcommand" -a uninstall -d "Remove the Claude Code hook"
 complete -c aiignore -n "__fish_use_subcommand" -a status -d "Show whether the hook is installed and working"
 complete -c aiignore -n "__fish_use_subcommand" -a check -d "Dry-run: show which files would be blocked by .aiignore"
+complete -c aiignore -n "__fish_use_subcommand" -a suggest -d "Auto-detect sensitive files and suggest adding them"
+complete -c aiignore -n "__fish_use_subcommand" -a add -d "Add patterns to .aiignore"
+complete -c aiignore -n "__fish_use_subcommand" -a list -d "Show all configured patterns"
+complete -c aiignore -n "__fish_use_subcommand" -a audit -d "Show recent blocked access attempts"
+complete -c aiignore -n "__fish_seen_subcommand_from add" -l local -d "Force add to local .aiignore"
+complete -c aiignore -n "__fish_seen_subcommand_from add" -l global -d "Force add to global ~/.aiignore"
+complete -c aiignore -n "__fish_seen_subcommand_from audit" -l lines -d "Number of entries to show" -r
+complete -c aiignore -n "__fish_seen_subcommand_from audit" -l clear -d "Clear the audit log"
 `;
 }
 
@@ -20,7 +28,7 @@ function generateBashCompletions(): string {
 _aiignore() {
   local cur="\${COMP_WORDS[COMP_CWORD]}"
   if [ "\$COMP_CWORD" -eq 1 ]; then
-    COMPREPLY=( \$(compgen -W "install uninstall status check" -- "\$cur") )
+    COMPREPLY=( \$(compgen -W "install uninstall status check suggest add list audit" -- "\$cur") )
   fi
 }
 complete -F _aiignore aiignore
@@ -36,6 +44,10 @@ _aiignore() {
     'uninstall:Remove the Claude Code hook'
     'status:Show whether the hook is installed and working'
     'check:Dry-run: show which files would be blocked by .aiignore'
+    'suggest:Auto-detect sensitive files and suggest adding them'
+    'add:Add patterns to .aiignore'
+    'list:Show all configured patterns'
+    'audit:Show recent blocked access attempts'
   )
   _describe 'command' commands
 }

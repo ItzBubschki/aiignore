@@ -119,4 +119,8 @@ export async function suggest(): Promise<void> {
   console.log(
     `\nAdd these to ${AIIGNORE_FILENAME}? Run:\n  aiignore add ${unblocked.join(" ")}`
   );
+  console.log(chalk.dim("\nAfter adding, you can:"));
+  console.log(chalk.dim("  aiignore list    — view all configured patterns"));
+  console.log(chalk.dim("  aiignore check   — verify which files are blocked"));
+  console.log(chalk.dim("  aiignore audit   — monitor blocked access attempts"));
 }
