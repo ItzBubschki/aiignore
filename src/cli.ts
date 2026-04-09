@@ -1,13 +1,17 @@
+import { createRequire } from "node:module";
 import { Command } from "commander";
 import { install } from "./commands/install.js";
 import { uninstall } from "./commands/uninstall.js";
 import { status } from "./commands/status.js";
 import { check } from "./commands/check.js";
 
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json");
+
 const program = new Command()
   .name("aiignore")
   .description("Protect sensitive files from AI coding assistants")
-  .version("0.1.0");
+  .version(version, "-v, --version");
 
 program
   .command("install")
