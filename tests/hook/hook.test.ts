@@ -30,6 +30,7 @@ function runHook(
   try {
     execSync(`echo '${input}' | bun ${HOOK_SCRIPT}`, {
       cwd,
+      env: { ...process.env },
       stdio: ["pipe", "pipe", "pipe"],
       timeout: 10_000,
     });
@@ -68,16 +69,75 @@ describe("hook", () => {
     expect(result.exitCode).toBe(0);
   });
 
-  // SKIP: Testing global ~/.aiignore blocking would require writing to ~/.aiignore,
-  // which is dangerous in automated tests — it could overwrite the user's real
-  // global blocklist. This should be verified manually:
-  //
-  // Manual test steps:
-  //   1. Create ~/.aiignore with a pattern like "*.secret"
-  //   2. Run: echo '{"tool_input":{"file_path":"test.secret"}}' | bun src/hook/index.ts
-  //   3. Verify exit code is 2 and stderr contains "BLOCKED by ~/.aiignore (global)"
-  //   4. Clean up ~/.aiignore when done
-  test.skip("blocks file matching global ~/.aiignore", () => {
-    // Intentionally empty — see comment above
+  test("blocks file matching .aiignore in parent directory", () => {
+    // Create nested structure: tmpDir/.aiignore and tmpDir/child/
+    const child = path.join(tmpDir, "child");
+    fs.mkdirSync(child, { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".aiignore"), "*.secret\n");
+    fs.writeFileSync(path.join(child, "data.secret"), "sensitive");
+
+    const result = runHook("data.secret", child);
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("BLOCKED");
+    expect(result.stderr).toContain("data.secret");
+  });
+
+  test("blocks file matching .aiignore two levels up", () => {
+    const grandchild = path.join(tmpDir, "a", "b");
+    fs.mkdirSync(grandchild, { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".aiignore"), ".env\n");
+    fs.writeFileSync(path.join(grandchild, ".env"), "SECRET=abc");
+
+    const result = runHook(".env", grandchild);
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("BLOCKED");
+  });
+
+  test("allows file not matching any parent .aiignore", () => {
+    const child = path.join(tmpDir, "child");
+    fs.mkdirSync(child, { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".aiignore"), "*.secret\n");
+    fs.writeFileSync(path.join(child, "readme.txt"), "hello");
+
+    const result = runHook("readme.txt", child);
+    expect(result.exitCode).toBe(0);
+  });
+
+  test("closer .aiignore can block even without parent", () => {
+    const child = path.join(tmpDir, "child");
+    fs.mkdirSync(child, { recursive: true });
+    // No .aiignore in tmpDir, but one in child
+    fs.writeFileSync(path.join(child, ".aiignore"), ".env\n");
+    fs.writeFileSync(path.join(child, ".env"), "SECRET=abc");
+
+    const result = runHook(".env", child);
+    expect(result.exitCode).toBe(2);
+    expect(result.stderr).toContain("BLOCKED");
+  });
+
+  test("stderr shows relative path to parent .aiignore", () => {
+    const child = path.join(tmpDir, "child");
+    fs.mkdirSync(child, { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, ".aiignore"), "*.secret\n");
+
+    const result = runHook("data.secret", child);
+    expect(result.exitCode).toBe(2);
+    // The message should reference the parent .aiignore with a relative path
+    expect(result.stderr).toContain("../.aiignore");
+  });
+
+  test("blocks file matching global ~/.aiignore", () => {
+    // The test preload sets HOME to an isolated temp dir, so we can safely
+    // write to ~/.aiignore without touching the user's real global blocklist.
+    const globalAiignore = path.join(os.homedir(), ".aiignore");
+    fs.writeFileSync(globalAiignore, "*.secret\n");
+
+    try {
+      const result = runHook("test.secret", tmpDir);
+      expect(result.exitCode).toBe(2);
+      expect(result.stderr).toContain("BLOCKED by ~/.aiignore (global)");
+    } finally {
+      fs.unlinkSync(globalAiignore);
+    }
   });
 });

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
-import { loadAiignore, isBlocked } from "../lib/aiignore-parser.js";
+import { loadAiignoreChain, isBlockedByChain } from "../lib/aiignore-parser.js";
 import { AIIGNORE_FILENAME } from "../lib/constants.js";
 
 const SKIP_DIRS = new Set(["node_modules", ".git", "dist"]);
@@ -88,11 +88,11 @@ export function detectSensitiveFiles(cwd: string): string[] {
  * Returns the subset of files that are NOT yet blocked.
  */
 export function filterAlreadyBlocked(files: string[], cwd: string): string[] {
-  const ig = loadAiignore(cwd);
-  if (ig === null) {
+  const chain = loadAiignoreChain(cwd);
+  if (chain.length === 0) {
     return files;
   }
-  return files.filter((file) => !isBlocked(ig, file, cwd));
+  return files.filter((file) => isBlockedByChain(chain, file, cwd) === null);
 }
 
 export async function suggest(): Promise<void> {

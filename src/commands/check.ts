@@ -2,9 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
 import {
-  loadAiignore,
+  loadAiignoreChain,
   loadGlobalAiignore,
   isBlocked,
+  isBlockedByChain,
 } from "../lib/aiignore-parser.js";
 import { AIIGNORE_FILENAME } from "../lib/constants.js";
 
@@ -36,12 +37,12 @@ function walkFiles(dir: string, cwd: string, files: string[] = []): string[] {
 
 export async function check(): Promise<void> {
   const cwd = process.cwd();
-  const localIg = loadAiignore(cwd);
+  const chain = loadAiignoreChain(cwd);
   const globalIg = loadGlobalAiignore();
 
-  if (localIg === null && globalIg === null) {
+  if (chain.length === 0 && globalIg === null) {
     console.log(
-      `No ${AIIGNORE_FILENAME} file found in the current directory or globally (~/.aiignore).`
+      `No ${AIIGNORE_FILENAME} file found in the current directory or any parent directory, or globally (~/.aiignore).`
     );
     console.log("Create one to protect sensitive files from AI tools.");
     return;
@@ -49,34 +50,34 @@ export async function check(): Promise<void> {
 
   const allFiles = walkFiles(cwd, cwd).sort();
 
-  const blockedLocal: string[] = [];
-  const blockedGlobal: string[] = [];
+  const allBlocked: { file: string; source: string }[] = [];
 
   for (const file of allFiles) {
     const globallyBlocked = globalIg ? isBlocked(globalIg, file, cwd) : false;
-    const locallyBlocked = localIg ? isBlocked(localIg, file, cwd) : false;
 
     if (globallyBlocked) {
-      blockedGlobal.push(file);
-    } else if (locallyBlocked) {
-      blockedLocal.push(file);
+      allBlocked.push({ file, source: "global" });
+      continue;
+    }
+
+    const blockedBy = isBlockedByChain(chain, file, cwd);
+    if (blockedBy !== null) {
+      const source =
+        blockedBy === cwd
+          ? "local"
+          : path.join(path.relative(cwd, blockedBy), AIIGNORE_FILENAME);
+      allBlocked.push({ file, source });
     }
   }
 
-  const totalBlocked = blockedLocal.length + blockedGlobal.length;
-
-  if (totalBlocked === 0) {
+  if (allBlocked.length === 0) {
     console.log(`No files matched by ${AIIGNORE_FILENAME} patterns.`);
     return;
   }
 
   console.log(chalk.bold(`Files blocked by ${AIIGNORE_FILENAME}:\n`));
 
-  // Find the longest filename for alignment
-  const allBlocked = [
-    ...blockedGlobal.map((f) => ({ file: f, source: "global" as const })),
-    ...blockedLocal.map((f) => ({ file: f, source: "local" as const })),
-  ].sort((a, b) => a.file.localeCompare(b.file));
+  allBlocked.sort((a, b) => a.file.localeCompare(b.file));
 
   const maxLen = Math.max(...allBlocked.map((b) => b.file.length));
 
@@ -90,6 +91,6 @@ export async function check(): Promise<void> {
   }
 
   console.log(
-    `\n${chalk.bold(String(totalBlocked))} files blocked (out of ${allFiles.length} total)`
+    `\n${chalk.bold(String(allBlocked.length))} files blocked (out of ${allFiles.length} total)`
   );
 }

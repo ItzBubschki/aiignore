@@ -78,33 +78,38 @@ async function main(): Promise<void> {
     // No global .aiignore — continue
   }
 
-  // Load local .aiignore
-  const aiignorePath = path.join(cwd, AIIGNORE_FILENAME);
-  let content: string;
-  try {
-    content = fs.readFileSync(aiignorePath, "utf-8");
-  } catch {
-    // No local .aiignore → allow everything
-    process.exit(0);
-  }
+  // Walk up from cwd to filesystem root, checking each .aiignore
+  let dir = path.resolve(cwd);
 
-  const ig = ignore().add(content);
+  while (true) {
+    const aiignorePath = path.join(dir, AIIGNORE_FILENAME);
+    try {
+      const content = fs.readFileSync(aiignorePath, "utf-8");
+      const ig = ignore().add(content);
 
-  // Check if file is blocked
-  const relative = path.relative(cwd, absolute);
+      const relative = path.relative(dir, absolute);
 
-  // Files outside the project directory are not subject to local .aiignore
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    process.exit(0);
-  }
+      // Only check if the file is within this .aiignore's directory tree
+      if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
+        if (ig.ignores(relative)) {
+          logBlocked("local", cwd, filePath);
+          const displayPath = dir === cwd
+            ? AIIGNORE_FILENAME
+            : path.join(path.relative(cwd, dir), AIIGNORE_FILENAME);
+          process.stderr.write(
+            `BLOCKED by ${displayPath}: Access to '${filePath}' is denied.\n` +
+              `This file matches a pattern in ${displayPath}. Remove the pattern to allow access.\n`
+          );
+          process.exit(2);
+        }
+      }
+    } catch {
+      // No .aiignore at this level — continue walking up
+    }
 
-  if (ig.ignores(relative)) {
-    logBlocked("local", cwd, filePath);
-    process.stderr.write(
-      `BLOCKED by .aiignore: Access to '${filePath}' is denied.\n` +
-        `This file matches a pattern in ${AIIGNORE_FILENAME}. Remove the pattern to allow access.\n`
-    );
-    process.exit(2);
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // reached filesystem root
+    dir = parent;
   }
 
   process.exit(0);

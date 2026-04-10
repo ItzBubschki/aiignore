@@ -13,6 +13,7 @@ function runList(
     ["bun", path.join(PROJECT_ROOT, "src/cli.ts"), "list"],
     {
       cwd,
+      env: { ...process.env },
       stdout: "pipe",
       stderr: "pipe",
     }
