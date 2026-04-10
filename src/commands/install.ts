@@ -1,5 +1,6 @@
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -63,14 +64,18 @@ function bunAvailable(): boolean {
 
 function installCompiledHook(hookSource: string): boolean {
   console.log(chalk.dim("Compiling hook binary..."));
+  // Use a temp dir as cwd so .bun-build artifacts don't pollute the user's project
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aiignore-build-"));
   try {
     execSync(
       `bun build --compile "${hookSource}" --outfile "${HOOK_INSTALL_PATH}"`,
-      { stdio: "pipe" }
+      { stdio: "pipe", cwd: tmpDir }
     );
     return true;
   } catch {
     return false;
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 }
 
