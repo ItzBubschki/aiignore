@@ -3,13 +3,15 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
-import { HOOKS_DIR, HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH } from "../lib/constants.js";
+import { HOOKS_DIR, HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, HOOK_SCRIPT_COMMAND, VERSION_CHECK_INSTALL_PATH } from "../lib/constants.js";
 import {
   readSettings,
   writeSettings,
   isHookInstalled,
+  isVersionCheckInstalled,
   addHook,
   addVersionCheckHook,
+  removeHook,
   getSettingsPath,
 } from "../lib/claude-settings.js";
 import { installCompletions } from "../lib/completions.js";
@@ -74,24 +76,19 @@ function installCompiledHook(hookSource: string): boolean {
 
 function installScriptHook(hookSource: string): string {
   fs.copyFileSync(hookSource, HOOK_SCRIPT_INSTALL_PATH);
-  return `node "${HOOK_SCRIPT_INSTALL_PATH}"`;
+  return HOOK_SCRIPT_COMMAND;
 }
 
 export async function install(options: { local?: boolean }, packageVersion: string): Promise<void> {
   const local = options.local ?? false;
   const settingsPath = getSettingsPath(local);
-
-  // Check if already installed
   const settings = readSettings(settingsPath);
-  if (isHookInstalled(settings)) {
-    console.log(chalk.yellow("AI Guard hook is already installed."));
-    return;
-  }
+  const alreadyInstalled = isHookInstalled(settings);
 
   // Ensure hooks directory exists (binary always goes global)
   fs.mkdirSync(HOOKS_DIR, { recursive: true });
 
-  // Find the pre-bundled hook source (all deps inlined, no node_modules needed)
+  // Always install/update the hook binary
   const hookSource = findHookSource();
 
   let hookCommand: string | undefined;
@@ -118,15 +115,19 @@ export async function install(options: { local?: boolean }, packageVersion: stri
     console.log("");
   }
 
-  // Install version check script (always goes to global hooks dir)
+  // Always install/update the version check script
   const versionCheckSource = findVersionCheckSource();
   if (versionCheckSource) {
     fs.copyFileSync(versionCheckSource, VERSION_CHECK_INSTALL_PATH);
   }
 
-  // Add hooks to Claude Code settings (with version)
-  let updated = addHook(settings, hookCommand, packageVersion);
-  if (versionCheckSource) {
+  // Update settings: re-register hook with current version
+  let updated = settings;
+  if (alreadyInstalled) {
+    updated = removeHook(updated);
+  }
+  updated = addHook(updated, hookCommand, packageVersion);
+  if (!isVersionCheckInstalled(updated) && versionCheckSource) {
     updated = addVersionCheckHook(updated);
   }
   writeSettings(updated, settingsPath);
@@ -150,11 +151,14 @@ export async function install(options: { local?: boolean }, packageVersion: stri
   }
 
   const target = local ? "local .claude/settings.json" : "~/.claude/settings.json";
-  console.log(chalk.green(`\nAI Guard v${packageVersion} installed successfully! (${target})\n`));
-  console.log("Create a .aiignore file in any project to protect sensitive files:\n");
-  console.log(chalk.dim('  echo ".env" >> .aiignore'));
-  console.log(chalk.dim('  echo "secrets/" >> .aiignore'));
-  console.log(
-    "\nThe hook will automatically enforce .aiignore on every Claude Code session."
-  );
+  const action = alreadyInstalled ? "updated" : "installed";
+  console.log(chalk.green(`\nAI Guard v${packageVersion} ${action} successfully! (${target})\n`));
+  if (!alreadyInstalled) {
+    console.log("Create a .aiignore file in any project to protect sensitive files:\n");
+    console.log(chalk.dim('  echo ".env" >> .aiignore'));
+    console.log(chalk.dim('  echo "secrets/" >> .aiignore'));
+    console.log(
+      "\nThe hook will automatically enforce .aiignore on every Claude Code session."
+    );
+  }
 }

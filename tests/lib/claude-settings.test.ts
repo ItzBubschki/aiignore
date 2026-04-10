@@ -16,12 +16,12 @@ import {
 } from "../../src/lib/claude-settings.js";
 import {
   HOOK_BINARY_NAME,
-  HOOK_INSTALL_PATH,
+  HOOK_COMMAND,
   HOOK_MATCHER,
   CLAUDE_SETTINGS_PATH,
   LOCAL_CLAUDE_SETTINGS_PATH,
   VERSION_CHECK_SCRIPT_NAME,
-  VERSION_CHECK_INSTALL_PATH,
+  VERSION_CHECK_COMMAND,
 } from "../../src/lib/constants.js";
 
 // --- Pure function tests (no fs mocking needed) ---
@@ -57,7 +57,7 @@ describe("isHookInstalled", () => {
           PreToolUse: [
             {
               matcher: HOOK_MATCHER,
-              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+              hooks: [{ type: "command", command: HOOK_COMMAND }],
             },
           ],
         },
@@ -97,7 +97,7 @@ describe("addHook", () => {
     expect(result.hooks!.PreToolUse).toHaveLength(1);
     expect(result.hooks!.PreToolUse![0].matcher).toBe(HOOK_MATCHER);
     expect(result.hooks!.PreToolUse![0].hooks[0].command).toBe(
-      HOOK_INSTALL_PATH
+      HOOK_COMMAND
     );
   });
 
@@ -142,7 +142,7 @@ describe("removeHook", () => {
         PreToolUse: [
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+            hooks: [{ type: "command", command: HOOK_COMMAND }],
           },
         ],
       },
@@ -161,7 +161,7 @@ describe("removeHook", () => {
           },
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+            hooks: [{ type: "command", command: HOOK_COMMAND }],
           },
         ],
       },
@@ -219,7 +219,7 @@ describe("getInstalledVersion", () => {
           PreToolUse: [
             {
               matcher: HOOK_MATCHER,
-              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+              hooks: [{ type: "command", command: HOOK_COMMAND }],
             },
           ],
         },
@@ -234,7 +234,7 @@ describe("getInstalledVersion", () => {
           PreToolUse: [
             {
               matcher: HOOK_MATCHER,
-              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+              hooks: [{ type: "command", command: HOOK_COMMAND }],
               version: "1.2.3",
             } as any,
           ],
@@ -338,7 +338,7 @@ describe("isVersionCheckInstalled", () => {
               hooks: [
                 {
                   type: "command",
-                  command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+                  command: `node "${VERSION_CHECK_COMMAND}"`,
                 },
               ],
             },
@@ -379,7 +379,7 @@ describe("addVersionCheckHook", () => {
         PreToolUse: [
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+            hooks: [{ type: "command", command: HOOK_COMMAND }],
           },
         ],
       },
@@ -399,7 +399,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+                command: `node "${VERSION_CHECK_COMMAND}"`,
               },
             ],
           },
@@ -418,7 +418,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+                command: `node "${VERSION_CHECK_COMMAND}"`,
               },
             ],
           },
@@ -440,7 +440,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+                command: `node "${VERSION_CHECK_COMMAND}"`,
               },
             ],
           },
@@ -465,7 +465,7 @@ describe("removeVersionCheckHook", () => {
         PreToolUse: [
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+            hooks: [{ type: "command", command: HOOK_COMMAND }],
           },
         ],
         SessionStart: [
@@ -473,7 +473,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+                command: `node "${VERSION_CHECK_COMMAND}"`,
               },
             ],
           },

@@ -4,10 +4,10 @@ import {
   CLAUDE_SETTINGS_PATH,
   LOCAL_CLAUDE_SETTINGS_PATH,
   HOOK_BINARY_NAME,
-  HOOK_INSTALL_PATH,
+  HOOK_COMMAND,
   HOOK_MATCHER,
   VERSION_CHECK_SCRIPT_NAME,
-  VERSION_CHECK_INSTALL_PATH,
+  VERSION_CHECK_COMMAND,
 } from "./constants.js";
 
 interface HookEntry {
@@ -71,7 +71,7 @@ export function addHook(settings: ClaudeSettings, command?: string, version?: st
     hooks: [
       {
         type: "command",
-        command: command ?? HOOK_INSTALL_PATH,
+        command: command ?? HOOK_COMMAND,
       },
     ],
   };
@@ -122,7 +122,7 @@ export function addVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
     hooks: [
       {
         type: "command",
-        command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+        command: VERSION_CHECK_COMMAND,
       },
     ],
   });
