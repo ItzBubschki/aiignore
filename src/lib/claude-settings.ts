@@ -47,7 +47,7 @@ export function isHookInstalled(settings: ClaudeSettings): boolean {
   );
 }
 
-export function addHook(settings: ClaudeSettings): ClaudeSettings {
+export function addHook(settings: ClaudeSettings, command?: string): ClaudeSettings {
   if (!settings.hooks) {
     settings.hooks = {};
   }
@@ -60,7 +60,7 @@ export function addHook(settings: ClaudeSettings): ClaudeSettings {
     hooks: [
       {
         type: "command",
-        command: HOOK_INSTALL_PATH,
+        command: command ?? HOOK_INSTALL_PATH,
       },
     ],
   });

@@ -93,7 +93,7 @@ export function detectShell(): Shell | null {
   return null;
 }
 
-export function installCompletions(): { shell: string; path: string } | null {
+export function installCompletions(): { shell: string; path: string; sourceCommand: string | null } | null {
   const shell = detectShell();
   if (!shell) return null;
 
@@ -103,7 +103,13 @@ export function installCompletions(): { shell: string; path: string } | null {
   fs.mkdirSync(path.dirname(installPath), { recursive: true });
   fs.writeFileSync(installPath, script);
 
-  return { shell, path: installPath };
+  // fish auto-discovers completion files — no sourcing needed.
+  // bash and zsh need to source the file for the current session.
+  const sourceCommand = shell === "fish" ? null
+    : shell === "bash" ? `source ${installPath}`
+    : `source ${installPath}`;
+
+  return { shell, path: installPath, sourceCommand };
 }
 
 export function uninstallCompletions(): void {

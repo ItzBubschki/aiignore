@@ -34,12 +34,12 @@ bun test test/hook/hook.test.ts  # run a single test file
 
 Every new command requires all of the following:
 1. Implementation in `src/commands/` and registered in `src/cli.ts`
-2. Tests in `test/` (mirror the `src/` structure, e.g. `test/commands/foo.test.ts`)
+2. Tests in `tests/` (mirror the `src/` structure, e.g. `tests/commands/foo.test.ts`)
 3. Shell completions updated in `src/lib/completions.ts`
 4. All tests passing (`bun test`) before considering the work done
 5. README.md updated with documentation for the new command
 
-Tests must always live under the root `test/` directory, matching the source structure.
+Tests must always live under the root `tests/` directory, matching the source structure.
 
 ## Key Design Decisions
 - The hook bundle in `src/hook/index.ts` duplicates some logic from the shared libs (e.g., path constants, ignore loading) because it must be fully self-contained — it cannot import from `src/lib/` at runtime since it gets compiled to a standalone binary.

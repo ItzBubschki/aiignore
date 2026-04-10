@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import chalk from "chalk";
-import { HOOK_INSTALL_PATH } from "../lib/constants.js";
+import { HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH } from "../lib/constants.js";
 import {
   readSettings,
   writeSettings,
@@ -21,11 +21,13 @@ export async function uninstall(): Promise<void> {
   const updated = removeHook(settings);
   writeSettings(updated);
 
-  // Delete the hook binary
-  try {
-    fs.unlinkSync(HOOK_INSTALL_PATH);
-  } catch {
-    // Binary may already be gone
+  // Delete the hook binary and/or script
+  for (const hookPath of [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH]) {
+    try {
+      fs.unlinkSync(hookPath);
+    } catch {
+      // File may already be gone
+    }
   }
 
   // Remove shell completions

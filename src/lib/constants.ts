@@ -4,6 +4,7 @@ import os from "node:os";
 export const HOOK_BINARY_NAME = "ai-guard-hook";
 export const HOOKS_DIR = path.join(os.homedir(), ".claude", "hooks");
 export const HOOK_INSTALL_PATH = path.join(HOOKS_DIR, HOOK_BINARY_NAME);
+export const HOOK_SCRIPT_INSTALL_PATH = path.join(HOOKS_DIR, `${HOOK_BINARY_NAME}.js`);
 export const CLAUDE_SETTINGS_PATH = path.join(
   os.homedir(),
   ".claude",
