@@ -32,6 +32,7 @@ npm install -g @aiignore/cli
 - **Local `.aiignore`** -- per-project patterns using gitignore syntax
 - **Blocks Read, Write, Edit, and MultiEdit** operations
 - **Audit logging** -- blocked attempts are logged to `~/.claude/aiignore-audit.log`
+- **Update notifications** -- checks for new versions at session start
 - **Shell completions** -- installed automatically with `aiignore install`
 
 ## `.aiignore` Syntax
@@ -106,6 +107,7 @@ Shows recent blocked access attempts from the audit log.
 3. Both global (`~/.aiignore`) and local (`.aiignore` in cwd) patterns are evaluated
 4. If the accessed file matches a pattern, the hook blocks the operation and logs the attempt
 5. If no `.aiignore` exists, everything is allowed (fail-open)
+6. A lightweight PreSessionStart hook checks for updates once per session (2s timeout, fail-open)
 
 ## Limitations
 

@@ -10,6 +10,9 @@ import {
   removeHook,
   getInstalledVersion,
   getSettingsPath,
+  isVersionCheckInstalled,
+  addVersionCheckHook,
+  removeVersionCheckHook,
 } from "../../src/lib/claude-settings.js";
 import {
   HOOK_BINARY_NAME,
@@ -17,6 +20,8 @@ import {
   HOOK_MATCHER,
   CLAUDE_SETTINGS_PATH,
   LOCAL_CLAUDE_SETTINGS_PATH,
+  VERSION_CHECK_SCRIPT_NAME,
+  VERSION_CHECK_INSTALL_PATH,
 } from "../../src/lib/constants.js";
 
 // --- Pure function tests (no fs mocking needed) ---
@@ -296,5 +301,168 @@ describe("readSettings / writeSettings", () => {
     writeSettings(settings, nestedPath);
     const content = JSON.parse(fs.readFileSync(nestedPath, "utf-8"));
     expect(content).toEqual(settings);
+  });
+});
+
+// --- Version check hook tests ---
+
+describe("isVersionCheckInstalled", () => {
+  it("returns false for empty settings", () => {
+    expect(isVersionCheckInstalled({})).toBe(false);
+  });
+
+  it("returns false when no PreSessionStart hooks", () => {
+    expect(isVersionCheckInstalled({ hooks: {} })).toBe(false);
+  });
+
+  it("returns false when PreSessionStart has unrelated hooks", () => {
+    expect(
+      isVersionCheckInstalled({
+        hooks: {
+          PreSessionStart: [
+            {
+              hooks: [{ type: "command", command: "/other/script" }],
+            },
+          ],
+        },
+      })
+    ).toBe(false);
+  });
+
+  it("returns true when version check hook is installed", () => {
+    expect(
+      isVersionCheckInstalled({
+        hooks: {
+          PreSessionStart: [
+            {
+              hooks: [
+                {
+                  type: "command",
+                  command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+                },
+              ],
+            },
+          ],
+        },
+      })
+    ).toBe(true);
+  });
+});
+
+describe("addVersionCheckHook", () => {
+  it("adds PreSessionStart hook to empty settings", () => {
+    const result = addVersionCheckHook({});
+    expect(result.hooks).toBeDefined();
+    expect(result.hooks!.PreSessionStart).toHaveLength(1);
+    expect(result.hooks!.PreSessionStart![0].hooks[0].command).toContain(
+      VERSION_CHECK_SCRIPT_NAME
+    );
+  });
+
+  it("adds alongside existing PreSessionStart hooks", () => {
+    const existing = {
+      hooks: {
+        PreSessionStart: [
+          {
+            hooks: [{ type: "command", command: "/other/script" }],
+          },
+        ],
+      },
+    };
+    const result = addVersionCheckHook(existing);
+    expect(result.hooks!.PreSessionStart).toHaveLength(2);
+  });
+
+  it("does not affect PreToolUse hooks", () => {
+    const existing = {
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: HOOK_MATCHER,
+            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+          },
+        ],
+      },
+    };
+    const result = addVersionCheckHook(existing);
+    expect(result.hooks!.PreToolUse).toHaveLength(1);
+    expect(result.hooks!.PreSessionStart).toHaveLength(1);
+  });
+});
+
+describe("removeVersionCheckHook", () => {
+  it("removes the version check hook", () => {
+    const settings = {
+      hooks: {
+        PreSessionStart: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = removeVersionCheckHook(settings);
+    expect(result.hooks!.PreSessionStart).toBeUndefined();
+  });
+
+  it("preserves other PreSessionStart hooks", () => {
+    const settings = {
+      hooks: {
+        PreSessionStart: [
+          {
+            hooks: [{ type: "command", command: "/other/script" }],
+          },
+          {
+            hooks: [
+              {
+                type: "command",
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = removeVersionCheckHook(settings);
+    expect(result.hooks!.PreSessionStart).toHaveLength(1);
+    expect(result.hooks!.PreSessionStart![0].hooks[0].command).toBe(
+      "/other/script"
+    );
+  });
+
+  it("is a no-op when no hooks exist", () => {
+    const result = removeVersionCheckHook({});
+    expect(result).toEqual({});
+  });
+
+  it("does not affect PreToolUse hooks", () => {
+    const settings = {
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: HOOK_MATCHER,
+            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+          },
+        ],
+        PreSessionStart: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = removeVersionCheckHook(settings);
+    expect(result.hooks!.PreToolUse).toHaveLength(1);
+    expect(result.hooks!.PreSessionStart).toBeUndefined();
   });
 });

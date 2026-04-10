@@ -6,6 +6,8 @@ import {
   HOOK_BINARY_NAME,
   HOOK_INSTALL_PATH,
   HOOK_MATCHER,
+  VERSION_CHECK_SCRIPT_NAME,
+  VERSION_CHECK_INSTALL_PATH,
 } from "./constants.js";
 
 interface HookEntry {
@@ -94,6 +96,51 @@ export function removeHook(settings: ClaudeSettings): ClaudeSettings {
 
   if (settings.hooks!.PreToolUse.length === 0) {
     delete settings.hooks!.PreToolUse;
+  }
+
+  return settings;
+}
+
+export function isVersionCheckInstalled(settings: ClaudeSettings): boolean {
+  const preSession = settings.hooks?.PreSessionStart;
+  if (!preSession) return false;
+
+  return preSession.some((group) =>
+    group.hooks.some((hook) => hook.command.includes(VERSION_CHECK_SCRIPT_NAME))
+  );
+}
+
+export function addVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
+  if (!settings.hooks) {
+    settings.hooks = {};
+  }
+  if (!settings.hooks.PreSessionStart) {
+    settings.hooks.PreSessionStart = [];
+  }
+
+  settings.hooks.PreSessionStart.push({
+    hooks: [
+      {
+        type: "command",
+        command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+      },
+    ],
+  });
+
+  return settings;
+}
+
+export function removeVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
+  const preSession = settings.hooks?.PreSessionStart;
+  if (!preSession) return settings;
+
+  settings.hooks!.PreSessionStart = preSession.filter(
+    (group) =>
+      !group.hooks.some((hook) => hook.command.includes(VERSION_CHECK_SCRIPT_NAME))
+  );
+
+  if (settings.hooks!.PreSessionStart.length === 0) {
+    delete settings.hooks!.PreSessionStart;
   }
 
   return settings;

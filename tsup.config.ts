@@ -21,4 +21,14 @@ export default defineConfig([
       js: "#!/usr/bin/env node",
     },
   },
+  // Version check hook — runs once at session start, not compiled to binary
+  {
+    entry: { "version-check": "src/hook/version-check.ts" },
+    format: ["esm"],
+    target: "node20",
+    noExternal: [/.*/],
+    banner: {
+      js: "#!/usr/bin/env node",
+    },
+  },
 ]);

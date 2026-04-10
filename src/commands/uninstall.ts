@@ -1,11 +1,12 @@
 import fs from "node:fs";
 import chalk from "chalk";
-import { HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH } from "../lib/constants.js";
+import { HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH } from "../lib/constants.js";
 import {
   readSettings,
   writeSettings,
   isHookInstalled,
   removeHook,
+  removeVersionCheckHook,
   getSettingsPath,
 } from "../lib/claude-settings.js";
 import { uninstallCompletions } from "../lib/completions.js";
@@ -20,13 +21,14 @@ export async function uninstall(options: { local?: boolean }): Promise<void> {
     return;
   }
 
-  // Remove hook from settings
-  const updated = removeHook(settings);
+  // Remove hooks from settings
+  let updated = removeHook(settings);
+  updated = removeVersionCheckHook(updated);
   writeSettings(updated, settingsPath);
 
-  // Only delete the hook binary when uninstalling from global settings
+  // Only delete the hook binary/scripts when uninstalling from global settings
   if (!local) {
-    for (const hookPath of [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH]) {
+    for (const hookPath of [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH]) {
       try {
         fs.unlinkSync(hookPath);
       } catch {

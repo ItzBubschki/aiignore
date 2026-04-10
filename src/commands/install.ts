@@ -4,12 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
-import { HOOKS_DIR, HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH } from "../lib/constants.js";
+import { HOOKS_DIR, HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH } from "../lib/constants.js";
 import {
   readSettings,
   writeSettings,
   isHookInstalled,
   addHook,
+  addVersionCheckHook,
   getSettingsPath,
 } from "../lib/claude-settings.js";
 import { installCompletions } from "../lib/completions.js";
@@ -35,6 +36,22 @@ function findHookSource(): string {
   throw new Error(
     "Could not find hook source. Run 'bun run build' first, or run from the project root."
   );
+}
+
+function findVersionCheckSource(): string | null {
+  // 1. Pre-bundled (exists in dist/ after build)
+  const bundlePath = path.resolve(__dirname, "version-check.js");
+  if (fs.existsSync(bundlePath)) {
+    return bundlePath;
+  }
+
+  // 2. Raw source file (for local dev)
+  const sourcePath = path.resolve(__dirname, "../hook/version-check.ts");
+  if (fs.existsSync(sourcePath)) {
+    return sourcePath;
+  }
+
+  return null;
 }
 
 function bunAvailable(): boolean {
@@ -105,8 +122,17 @@ export async function install(options: { local?: boolean }): Promise<void> {
     console.log("");
   }
 
-  // Add hook to Claude Code settings (with version)
-  const updated = addHook(settings, hookCommand, packageVersion);
+  // Install version check script (always goes to global hooks dir)
+  const versionCheckSource = findVersionCheckSource();
+  if (versionCheckSource) {
+    fs.copyFileSync(versionCheckSource, VERSION_CHECK_INSTALL_PATH);
+  }
+
+  // Add hooks to Claude Code settings (with version)
+  let updated = addHook(settings, hookCommand, packageVersion);
+  if (versionCheckSource) {
+    updated = addVersionCheckHook(updated);
+  }
   writeSettings(updated, settingsPath);
 
   // Install shell completions
