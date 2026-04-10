@@ -59,11 +59,15 @@ private/
 
 ### `aiignore install`
 
-One-time global setup. Compiles a fast native hook binary (via `bun build --compile`) and registers it as a Claude Code PreToolUse hook. Also installs shell completions. Requires [Bun](https://bun.sh).
+One-time setup. Compiles a fast native hook binary (via `bun build --compile`) and registers it as a Claude Code PreToolUse hook. Also installs shell completions. Requires [Bun](https://bun.sh).
+
+- `--local` -- install the hook config in the project-level `.claude/settings.json` instead of the global `~/.claude/settings.json`. The binary is still installed globally.
 
 ### `aiignore uninstall`
 
 Removes the hook from Claude Code settings and deletes the hook binary. Does not delete your `.aiignore` files.
+
+- `--local` -- remove the hook config from the project-level `.claude/settings.json` only (keeps the global binary).
 
 ### `aiignore status`
 

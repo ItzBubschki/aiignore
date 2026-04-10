@@ -20,11 +20,13 @@ const program = new Command()
 program
   .command("install")
   .description("Install the Claude Code hook for .aiignore enforcement")
+  .option("--local", "install hook config in local .claude/settings.json (project-level)")
   .action(install);
 
 program
   .command("uninstall")
   .description("Remove the Claude Code hook")
+  .option("--local", "remove hook config from local .claude/settings.json (project-level)")
   .action(uninstall);
 
 program

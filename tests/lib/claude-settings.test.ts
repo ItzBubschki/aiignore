@@ -8,11 +8,15 @@ import {
   isHookInstalled,
   addHook,
   removeHook,
+  getInstalledVersion,
+  getSettingsPath,
 } from "../../src/lib/claude-settings.js";
 import {
   HOOK_BINARY_NAME,
   HOOK_INSTALL_PATH,
   HOOK_MATCHER,
+  CLAUDE_SETTINGS_PATH,
+  LOCAL_CLAUDE_SETTINGS_PATH,
 } from "../../src/lib/constants.js";
 
 // --- Pure function tests (no fs mocking needed) ---
@@ -112,6 +116,18 @@ describe("addHook", () => {
     expect(result.someOtherKey).toBe("value");
     expect(result.hooks!.PreToolUse).toHaveLength(1);
   });
+
+  it("stores version when provided", () => {
+    const result = addHook({}, undefined, "1.2.3");
+    const group = result.hooks!.PreToolUse![0] as any;
+    expect(group.version).toBe("1.2.3");
+  });
+
+  it("omits version field when not provided", () => {
+    const result = addHook({});
+    const group = result.hooks!.PreToolUse![0] as any;
+    expect(group.version).toBeUndefined();
+  });
 });
 
 describe("removeHook", () => {
@@ -171,6 +187,68 @@ describe("removeHook", () => {
   });
 });
 
+describe("getInstalledVersion", () => {
+  it("returns null for empty settings", () => {
+    expect(getInstalledVersion({})).toBeNull();
+  });
+
+  it("returns null when hooks exist but no matching hook", () => {
+    expect(
+      getInstalledVersion({
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: "Read",
+              hooks: [{ type: "command", command: "/other/hook" }],
+            },
+          ],
+        },
+      })
+    ).toBeNull();
+  });
+
+  it("returns null when hook exists but has no version", () => {
+    expect(
+      getInstalledVersion({
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: HOOK_MATCHER,
+              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+            },
+          ],
+        },
+      })
+    ).toBeNull();
+  });
+
+  it("returns version when hook has version field", () => {
+    expect(
+      getInstalledVersion({
+        hooks: {
+          PreToolUse: [
+            {
+              matcher: HOOK_MATCHER,
+              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
+              version: "1.2.3",
+            } as any,
+          ],
+        },
+      })
+    ).toBe("1.2.3");
+  });
+});
+
+describe("getSettingsPath", () => {
+  it("returns global path when local is false", () => {
+    expect(getSettingsPath(false)).toBe(CLAUDE_SETTINGS_PATH);
+  });
+
+  it("returns local path when local is true", () => {
+    expect(getSettingsPath(true)).toBe(LOCAL_CLAUDE_SETTINGS_PATH);
+  });
+});
+
 // --- File I/O tests using a temp directory ---
 
 describe("readSettings / writeSettings", () => {
@@ -198,5 +276,25 @@ describe("readSettings / writeSettings", () => {
     fs.writeFileSync(tmpSettingsPath, JSON.stringify(settings, null, 2) + "\n");
     const raw = fs.readFileSync(tmpSettingsPath, "utf-8");
     expect(raw).toBe('{\n  "key": "value"\n}\n');
+  });
+
+  it("readSettings reads from custom path", () => {
+    const settings = { hooks: { PreToolUse: [] }, custom: true };
+    fs.writeFileSync(tmpSettingsPath, JSON.stringify(settings));
+    const result = readSettings(tmpSettingsPath);
+    expect(result).toEqual(settings);
+  });
+
+  it("readSettings returns empty object for non-existent custom path", () => {
+    const result = readSettings(path.join(tmpDir, "nonexistent.json"));
+    expect(result).toEqual({});
+  });
+
+  it("writeSettings writes to custom path and creates parent dirs", () => {
+    const nestedPath = path.join(tmpDir, "sub", "dir", "settings.json");
+    const settings = { key: "value" };
+    writeSettings(settings, nestedPath);
+    const content = JSON.parse(fs.readFileSync(nestedPath, "utf-8"));
+    expect(content).toEqual(settings);
   });
 });

@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import chalk from "chalk";
-import { readSettings, isHookInstalled } from "../lib/claude-settings.js";
+import { readSettings, isHookInstalled, getInstalledVersion } from "../lib/claude-settings.js";
 import {
   HOOK_INSTALL_PATH,
   AIIGNORE_FILENAME,
@@ -29,9 +29,11 @@ export async function status(): Promise<void> {
   console.log("\nAI Guard Status:\n");
 
   // Hook registered
+  const installedVersion = getInstalledVersion(settings);
   if (hookRegistered) {
+    const versionInfo = installedVersion ? ` v${installedVersion}` : "";
     console.log(
-      `  Hook registered:  ${chalk.green("✓")} (in ~/.claude/settings.json)`
+      `  Hook registered:  ${chalk.green("✓")} (in ~/.claude/settings.json${versionInfo})`
     );
   } else {
     console.log(

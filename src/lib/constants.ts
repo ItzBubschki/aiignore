@@ -10,6 +10,11 @@ export const CLAUDE_SETTINGS_PATH = path.join(
   ".claude",
   "settings.json"
 );
+export const LOCAL_CLAUDE_SETTINGS_PATH = path.join(
+  process.cwd(),
+  ".claude",
+  "settings.json"
+);
 export const AIIGNORE_FILENAME = ".aiignore";
 export const GLOBAL_AIIGNORE_PATH = path.join(os.homedir(), AIIGNORE_FILENAME);
 export const HOOK_MATCHER = "Read|Write|Edit|MultiEdit";

@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -9,10 +10,14 @@ import {
   writeSettings,
   isHookInstalled,
   addHook,
+  getSettingsPath,
 } from "../lib/claude-settings.js";
 import { installCompletions } from "../lib/completions.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const require = createRequire(import.meta.url);
+const { version: packageVersion } = require("../../package.json");
 
 function findHookSource(): string {
   // 1. Pre-bundled hook (exists in dist/ after build, used by npx/npm)
@@ -59,15 +64,18 @@ function installScriptHook(hookSource: string): string {
   return `node "${HOOK_SCRIPT_INSTALL_PATH}"`;
 }
 
-export async function install(): Promise<void> {
+export async function install(options: { local?: boolean }): Promise<void> {
+  const local = options.local ?? false;
+  const settingsPath = getSettingsPath(local);
+
   // Check if already installed
-  const settings = readSettings();
+  const settings = readSettings(settingsPath);
   if (isHookInstalled(settings)) {
     console.log(chalk.yellow("AI Guard hook is already installed."));
     return;
   }
 
-  // Ensure hooks directory exists
+  // Ensure hooks directory exists (binary always goes global)
   fs.mkdirSync(HOOKS_DIR, { recursive: true });
 
   // Find the pre-bundled hook source (all deps inlined, no node_modules needed)
@@ -97,9 +105,9 @@ export async function install(): Promise<void> {
     console.log("");
   }
 
-  // Add hook to Claude Code settings
-  const updated = addHook(settings, hookCommand);
-  writeSettings(updated);
+  // Add hook to Claude Code settings (with version)
+  const updated = addHook(settings, hookCommand, packageVersion);
+  writeSettings(updated, settingsPath);
 
   // Install shell completions
   const completionResult = installCompletions();
@@ -119,7 +127,8 @@ export async function install(): Promise<void> {
     );
   }
 
-  console.log(chalk.green("\nAI Guard installed successfully!\n"));
+  const target = local ? "local .claude/settings.json" : "~/.claude/settings.json";
+  console.log(chalk.green(`\nAI Guard v${packageVersion} installed successfully! (${target})\n`));
   console.log("Create a .aiignore file in any project to protect sensitive files:\n");
   console.log(chalk.dim('  echo ".env" >> .aiignore'));
   console.log(chalk.dim('  echo "secrets/" >> .aiignore'));
