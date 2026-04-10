@@ -311,15 +311,15 @@ describe("isVersionCheckInstalled", () => {
     expect(isVersionCheckInstalled({})).toBe(false);
   });
 
-  it("returns false when no PreSessionStart hooks", () => {
+  it("returns false when no SessionStart hooks", () => {
     expect(isVersionCheckInstalled({ hooks: {} })).toBe(false);
   });
 
-  it("returns false when PreSessionStart has unrelated hooks", () => {
+  it("returns false when SessionStart has unrelated hooks", () => {
     expect(
       isVersionCheckInstalled({
         hooks: {
-          PreSessionStart: [
+          SessionStart: [
             {
               hooks: [{ type: "command", command: "/other/script" }],
             },
@@ -333,7 +333,7 @@ describe("isVersionCheckInstalled", () => {
     expect(
       isVersionCheckInstalled({
         hooks: {
-          PreSessionStart: [
+          SessionStart: [
             {
               hooks: [
                 {
@@ -350,19 +350,19 @@ describe("isVersionCheckInstalled", () => {
 });
 
 describe("addVersionCheckHook", () => {
-  it("adds PreSessionStart hook to empty settings", () => {
+  it("adds SessionStart hook to empty settings", () => {
     const result = addVersionCheckHook({});
     expect(result.hooks).toBeDefined();
-    expect(result.hooks!.PreSessionStart).toHaveLength(1);
-    expect(result.hooks!.PreSessionStart![0].hooks[0].command).toContain(
+    expect(result.hooks!.SessionStart).toHaveLength(1);
+    expect(result.hooks!.SessionStart![0].hooks[0].command).toContain(
       VERSION_CHECK_SCRIPT_NAME
     );
   });
 
-  it("adds alongside existing PreSessionStart hooks", () => {
+  it("adds alongside existing SessionStart hooks", () => {
     const existing = {
       hooks: {
-        PreSessionStart: [
+        SessionStart: [
           {
             hooks: [{ type: "command", command: "/other/script" }],
           },
@@ -370,7 +370,7 @@ describe("addVersionCheckHook", () => {
       },
     };
     const result = addVersionCheckHook(existing);
-    expect(result.hooks!.PreSessionStart).toHaveLength(2);
+    expect(result.hooks!.SessionStart).toHaveLength(2);
   });
 
   it("does not affect PreToolUse hooks", () => {
@@ -386,12 +386,31 @@ describe("addVersionCheckHook", () => {
     };
     const result = addVersionCheckHook(existing);
     expect(result.hooks!.PreToolUse).toHaveLength(1);
-    expect(result.hooks!.PreSessionStart).toHaveLength(1);
+    expect(result.hooks!.SessionStart).toHaveLength(1);
   });
 });
 
 describe("removeVersionCheckHook", () => {
-  it("removes the version check hook", () => {
+  it("removes the version check hook from SessionStart", () => {
+    const settings = {
+      hooks: {
+        SessionStart: [
+          {
+            hooks: [
+              {
+                type: "command",
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
+              },
+            ],
+          },
+        ],
+      },
+    };
+    const result = removeVersionCheckHook(settings);
+    expect(result.hooks!.SessionStart).toBeUndefined();
+  });
+
+  it("removes legacy PreSessionStart entry", () => {
     const settings = {
       hooks: {
         PreSessionStart: [
@@ -410,10 +429,10 @@ describe("removeVersionCheckHook", () => {
     expect(result.hooks!.PreSessionStart).toBeUndefined();
   });
 
-  it("preserves other PreSessionStart hooks", () => {
+  it("preserves other SessionStart hooks", () => {
     const settings = {
       hooks: {
-        PreSessionStart: [
+        SessionStart: [
           {
             hooks: [{ type: "command", command: "/other/script" }],
           },
@@ -429,8 +448,8 @@ describe("removeVersionCheckHook", () => {
       },
     };
     const result = removeVersionCheckHook(settings);
-    expect(result.hooks!.PreSessionStart).toHaveLength(1);
-    expect(result.hooks!.PreSessionStart![0].hooks[0].command).toBe(
+    expect(result.hooks!.SessionStart).toHaveLength(1);
+    expect(result.hooks!.SessionStart![0].hooks[0].command).toBe(
       "/other/script"
     );
   });
@@ -449,7 +468,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
           },
         ],
-        PreSessionStart: [
+        SessionStart: [
           {
             hooks: [
               {
@@ -463,6 +482,6 @@ describe("removeVersionCheckHook", () => {
     };
     const result = removeVersionCheckHook(settings);
     expect(result.hooks!.PreToolUse).toHaveLength(1);
-    expect(result.hooks!.PreSessionStart).toBeUndefined();
+    expect(result.hooks!.SessionStart).toBeUndefined();
   });
 });

@@ -102,10 +102,10 @@ export function removeHook(settings: ClaudeSettings): ClaudeSettings {
 }
 
 export function isVersionCheckInstalled(settings: ClaudeSettings): boolean {
-  const preSession = settings.hooks?.PreSessionStart;
-  if (!preSession) return false;
+  const sessionStart = settings.hooks?.SessionStart;
+  if (!sessionStart) return false;
 
-  return preSession.some((group) =>
+  return sessionStart.some((group) =>
     group.hooks.some((hook) => hook.command.includes(VERSION_CHECK_SCRIPT_NAME))
   );
 }
@@ -114,11 +114,11 @@ export function addVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
   if (!settings.hooks) {
     settings.hooks = {};
   }
-  if (!settings.hooks.PreSessionStart) {
-    settings.hooks.PreSessionStart = [];
+  if (!settings.hooks.SessionStart) {
+    settings.hooks.SessionStart = [];
   }
 
-  settings.hooks.PreSessionStart.push({
+  settings.hooks.SessionStart.push({
     hooks: [
       {
         type: "command",
@@ -131,16 +131,19 @@ export function addVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
 }
 
 export function removeVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
-  const preSession = settings.hooks?.PreSessionStart;
-  if (!preSession) return settings;
+  // Remove from SessionStart (current) and PreSessionStart (legacy)
+  for (const event of ["SessionStart", "PreSessionStart"] as const) {
+    const groups = settings.hooks?.[event];
+    if (!groups) continue;
 
-  settings.hooks!.PreSessionStart = preSession.filter(
-    (group) =>
-      !group.hooks.some((hook) => hook.command.includes(VERSION_CHECK_SCRIPT_NAME))
-  );
+    settings.hooks![event] = groups.filter(
+      (group) =>
+        !group.hooks.some((hook) => hook.command.includes(VERSION_CHECK_SCRIPT_NAME))
+    );
 
-  if (settings.hooks!.PreSessionStart.length === 0) {
-    delete settings.hooks!.PreSessionStart;
+    if (settings.hooks![event]!.length === 0) {
+      delete settings.hooks![event];
+    }
   }
 
   return settings;
