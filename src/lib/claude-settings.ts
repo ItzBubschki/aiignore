@@ -4,10 +4,10 @@ import {
   CLAUDE_SETTINGS_PATH,
   LOCAL_CLAUDE_SETTINGS_PATH,
   HOOK_BINARY_NAME,
-  HOOK_COMMAND,
+  HOOK_INSTALL_PATH,
   HOOK_MATCHER,
   VERSION_CHECK_SCRIPT_NAME,
-  VERSION_CHECK_COMMAND,
+  VERSION_CHECK_INSTALL_PATH,
 } from "./constants.js";
 
 interface HookEntry {
@@ -58,7 +58,7 @@ export function isHookInstalled(settings: ClaudeSettings): boolean {
   );
 }
 
-export function addHook(settings: ClaudeSettings, command?: string, version?: string): ClaudeSettings {
+export function addHook(settings: ClaudeSettings, command: string, version?: string): ClaudeSettings {
   if (!settings.hooks) {
     settings.hooks = {};
   }
@@ -71,7 +71,7 @@ export function addHook(settings: ClaudeSettings, command?: string, version?: st
     hooks: [
       {
         type: "command",
-        command: command ?? HOOK_COMMAND,
+        command,
       },
     ],
   };
@@ -110,7 +110,7 @@ export function isVersionCheckInstalled(settings: ClaudeSettings): boolean {
   );
 }
 
-export function addVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
+export function addVersionCheckHook(settings: ClaudeSettings, versionCheckPath?: string): ClaudeSettings {
   if (!settings.hooks) {
     settings.hooks = {};
   }
@@ -118,11 +118,13 @@ export function addVersionCheckHook(settings: ClaudeSettings): ClaudeSettings {
     settings.hooks.SessionStart = [];
   }
 
+  const scriptPath = versionCheckPath ?? VERSION_CHECK_INSTALL_PATH;
+
   settings.hooks.SessionStart.push({
     hooks: [
       {
         type: "command",
-        command: VERSION_CHECK_COMMAND,
+        command: `node "${scriptPath}"`,
       },
     ],
   });

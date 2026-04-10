@@ -16,12 +16,12 @@ import {
 } from "../../src/lib/claude-settings.js";
 import {
   HOOK_BINARY_NAME,
-  HOOK_COMMAND,
+  HOOK_INSTALL_PATH,
   HOOK_MATCHER,
   CLAUDE_SETTINGS_PATH,
   LOCAL_CLAUDE_SETTINGS_PATH,
   VERSION_CHECK_SCRIPT_NAME,
-  VERSION_CHECK_COMMAND,
+  VERSION_CHECK_INSTALL_PATH,
 } from "../../src/lib/constants.js";
 
 // --- Pure function tests (no fs mocking needed) ---
@@ -57,7 +57,7 @@ describe("isHookInstalled", () => {
           PreToolUse: [
             {
               matcher: HOOK_MATCHER,
-              hooks: [{ type: "command", command: HOOK_COMMAND }],
+              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
             },
           ],
         },
@@ -92,12 +92,12 @@ describe("isHookInstalled", () => {
 
 describe("addHook", () => {
   it("adds hook to empty settings", () => {
-    const result = addHook({});
+    const result = addHook({}, HOOK_INSTALL_PATH);
     expect(result.hooks).toBeDefined();
     expect(result.hooks!.PreToolUse).toHaveLength(1);
     expect(result.hooks!.PreToolUse![0].matcher).toBe(HOOK_MATCHER);
     expect(result.hooks!.PreToolUse![0].hooks[0].command).toBe(
-      HOOK_COMMAND
+      HOOK_INSTALL_PATH
     );
   });
 
@@ -112,26 +112,33 @@ describe("addHook", () => {
         ],
       },
     };
-    const result = addHook(existing);
+    const result = addHook(existing, HOOK_INSTALL_PATH);
     expect(result.hooks!.PreToolUse).toHaveLength(2);
   });
 
   it("preserves other settings", () => {
-    const result = addHook({ someOtherKey: "value" });
+    const result = addHook({ someOtherKey: "value" }, HOOK_INSTALL_PATH);
     expect(result.someOtherKey).toBe("value");
     expect(result.hooks!.PreToolUse).toHaveLength(1);
   });
 
   it("stores version when provided", () => {
-    const result = addHook({}, undefined, "1.2.3");
+    const result = addHook({}, HOOK_INSTALL_PATH, "1.2.3");
     const group = result.hooks!.PreToolUse![0] as any;
     expect(group.version).toBe("1.2.3");
   });
 
   it("omits version field when not provided", () => {
-    const result = addHook({});
+    const result = addHook({}, HOOK_INSTALL_PATH);
     const group = result.hooks!.PreToolUse![0] as any;
     expect(group.version).toBeUndefined();
+  });
+
+  it("uses the provided command path", () => {
+    const result = addHook({}, "/custom/path/ai-guard-hook");
+    expect(result.hooks!.PreToolUse![0].hooks[0].command).toBe(
+      "/custom/path/ai-guard-hook"
+    );
   });
 });
 
@@ -142,7 +149,7 @@ describe("removeHook", () => {
         PreToolUse: [
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_COMMAND }],
+            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
           },
         ],
       },
@@ -161,7 +168,7 @@ describe("removeHook", () => {
           },
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_COMMAND }],
+            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
           },
         ],
       },
@@ -219,7 +226,7 @@ describe("getInstalledVersion", () => {
           PreToolUse: [
             {
               matcher: HOOK_MATCHER,
-              hooks: [{ type: "command", command: HOOK_COMMAND }],
+              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
             },
           ],
         },
@@ -234,7 +241,7 @@ describe("getInstalledVersion", () => {
           PreToolUse: [
             {
               matcher: HOOK_MATCHER,
-              hooks: [{ type: "command", command: HOOK_COMMAND }],
+              hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
               version: "1.2.3",
             } as any,
           ],
@@ -338,7 +345,7 @@ describe("isVersionCheckInstalled", () => {
               hooks: [
                 {
                   type: "command",
-                  command: `node "${VERSION_CHECK_COMMAND}"`,
+                  command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
                 },
               ],
             },
@@ -356,6 +363,13 @@ describe("addVersionCheckHook", () => {
     expect(result.hooks!.SessionStart).toHaveLength(1);
     expect(result.hooks!.SessionStart![0].hooks[0].command).toContain(
       VERSION_CHECK_SCRIPT_NAME
+    );
+  });
+
+  it("uses custom path when provided", () => {
+    const result = addVersionCheckHook({}, "/custom/path/version-check.js");
+    expect(result.hooks!.SessionStart![0].hooks[0].command).toBe(
+      'node "/custom/path/version-check.js"'
     );
   });
 
@@ -379,7 +393,7 @@ describe("addVersionCheckHook", () => {
         PreToolUse: [
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_COMMAND }],
+            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
           },
         ],
       },
@@ -399,7 +413,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_COMMAND}"`,
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
               },
             ],
           },
@@ -418,7 +432,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_COMMAND}"`,
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
               },
             ],
           },
@@ -440,7 +454,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_COMMAND}"`,
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
               },
             ],
           },
@@ -465,7 +479,7 @@ describe("removeVersionCheckHook", () => {
         PreToolUse: [
           {
             matcher: HOOK_MATCHER,
-            hooks: [{ type: "command", command: HOOK_COMMAND }],
+            hooks: [{ type: "command", command: HOOK_INSTALL_PATH }],
           },
         ],
         SessionStart: [
@@ -473,7 +487,7 @@ describe("removeVersionCheckHook", () => {
             hooks: [
               {
                 type: "command",
-                command: `node "${VERSION_CHECK_COMMAND}"`,
+                command: `node "${VERSION_CHECK_INSTALL_PATH}"`,
               },
             ],
           },

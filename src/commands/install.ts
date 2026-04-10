@@ -4,7 +4,16 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
-import { HOOKS_DIR, HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, HOOK_SCRIPT_COMMAND, VERSION_CHECK_INSTALL_PATH } from "../lib/constants.js";
+import {
+  HOOKS_DIR,
+  LOCAL_HOOKS_DIR,
+  HOOK_INSTALL_PATH,
+  LOCAL_HOOK_INSTALL_PATH,
+  HOOK_SCRIPT_INSTALL_PATH,
+  LOCAL_HOOK_SCRIPT_INSTALL_PATH,
+  VERSION_CHECK_INSTALL_PATH,
+  LOCAL_VERSION_CHECK_INSTALL_PATH,
+} from "../lib/constants.js";
 import {
   readSettings,
   writeSettings,
@@ -62,13 +71,13 @@ function bunAvailable(): boolean {
   }
 }
 
-function installCompiledHook(hookSource: string): boolean {
+function compileHook(hookSource: string, outPath: string): boolean {
   console.log(chalk.dim("Compiling hook binary..."));
   // Use a temp dir as cwd so .bun-build artifacts don't pollute the user's project
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "aiignore-build-"));
   try {
     execSync(
-      `bun build --compile "${hookSource}" --outfile "${HOOK_INSTALL_PATH}"`,
+      `bun build --compile "${hookSource}" --outfile "${outPath}"`,
       { stdio: "pipe", cwd: tmpDir }
     );
     return true;
@@ -79,34 +88,34 @@ function installCompiledHook(hookSource: string): boolean {
   }
 }
 
-function installScriptHook(hookSource: string): string {
-  fs.copyFileSync(hookSource, HOOK_SCRIPT_INSTALL_PATH);
-  return HOOK_SCRIPT_COMMAND;
-}
-
 export async function install(options: { local?: boolean }, packageVersion: string): Promise<void> {
   const local = options.local ?? false;
   const settingsPath = getSettingsPath(local);
   const settings = readSettings(settingsPath);
   const alreadyInstalled = isHookInstalled(settings);
 
-  // Ensure hooks directory exists (binary always goes global)
-  fs.mkdirSync(HOOKS_DIR, { recursive: true });
+  // Pick paths based on local vs global
+  const hooksDir = local ? LOCAL_HOOKS_DIR : HOOKS_DIR;
+  const hookBinaryPath = local ? LOCAL_HOOK_INSTALL_PATH : HOOK_INSTALL_PATH;
+  const hookScriptPath = local ? LOCAL_HOOK_SCRIPT_INSTALL_PATH : HOOK_SCRIPT_INSTALL_PATH;
+  const versionCheckPath = local ? LOCAL_VERSION_CHECK_INSTALL_PATH : VERSION_CHECK_INSTALL_PATH;
+
+  // Ensure hooks directory exists
+  fs.mkdirSync(hooksDir, { recursive: true });
 
   // Always install/update the hook binary
   const hookSource = findHookSource();
 
-  let hookCommand: string | undefined;
+  let hookCommand: string = hookBinaryPath;
 
   if (bunAvailable()) {
-    if (installCompiledHook(hookSource)) {
-      hookCommand = undefined; // uses default (binary path)
-    }
+    compileHook(hookSource, hookBinaryPath);
   }
 
   // Fallback: install as a Node.js script if Bun isn't available or compilation failed
-  if (!hookCommand && !fs.existsSync(HOOK_INSTALL_PATH)) {
-    hookCommand = installScriptHook(hookSource);
+  if (!fs.existsSync(hookBinaryPath)) {
+    fs.copyFileSync(hookSource, hookScriptPath);
+    hookCommand = `node "${hookScriptPath}"`;
 
     console.log("");
     console.log(chalk.yellow.bold("⚠  Bun not found — installing hook as a Node.js script instead."));
@@ -123,7 +132,7 @@ export async function install(options: { local?: boolean }, packageVersion: stri
   // Always install/update the version check script
   const versionCheckSource = findVersionCheckSource();
   if (versionCheckSource) {
-    fs.copyFileSync(versionCheckSource, VERSION_CHECK_INSTALL_PATH);
+    fs.copyFileSync(versionCheckSource, versionCheckPath);
   }
 
   // Update settings: re-register hook with current version
@@ -133,7 +142,7 @@ export async function install(options: { local?: boolean }, packageVersion: stri
   }
   updated = addHook(updated, hookCommand, packageVersion);
   if (!isVersionCheckInstalled(updated) && versionCheckSource) {
-    updated = addVersionCheckHook(updated);
+    updated = addVersionCheckHook(updated, versionCheckPath);
   }
   writeSettings(updated, settingsPath);
 

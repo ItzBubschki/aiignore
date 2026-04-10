@@ -1,6 +1,13 @@
 import fs from "node:fs";
 import chalk from "chalk";
-import { HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH } from "../lib/constants.js";
+import {
+  HOOK_INSTALL_PATH,
+  HOOK_SCRIPT_INSTALL_PATH,
+  VERSION_CHECK_INSTALL_PATH,
+  LOCAL_HOOK_INSTALL_PATH,
+  LOCAL_HOOK_SCRIPT_INSTALL_PATH,
+  LOCAL_VERSION_CHECK_INSTALL_PATH,
+} from "../lib/constants.js";
 import {
   readSettings,
   writeSettings,
@@ -26,14 +33,16 @@ export async function uninstall(options: { local?: boolean }): Promise<void> {
   updated = removeVersionCheckHook(updated);
   writeSettings(updated, settingsPath);
 
-  // Only delete the hook binary/scripts when uninstalling from global settings
-  if (!local) {
-    for (const hookPath of [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH]) {
-      try {
-        fs.unlinkSync(hookPath);
-      } catch {
-        // File may already be gone
-      }
+  // Delete the hook binary/scripts from the matching location
+  const paths = local
+    ? [LOCAL_HOOK_INSTALL_PATH, LOCAL_HOOK_SCRIPT_INSTALL_PATH, LOCAL_VERSION_CHECK_INSTALL_PATH]
+    : [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH];
+
+  for (const hookPath of paths) {
+    try {
+      fs.unlinkSync(hookPath);
+    } catch {
+      // File may already be gone
     }
   }
 
