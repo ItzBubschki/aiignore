@@ -9,7 +9,6 @@ import {
   addHook,
   removeHook,
   getInstalledVersion,
-  getSettingsPath,
   isVersionCheckInstalled,
   addVersionCheckHook,
   removeVersionCheckHook,
@@ -18,8 +17,6 @@ import {
   HOOK_BINARY_NAME,
   HOOK_INSTALL_PATH,
   HOOK_MATCHER,
-  CLAUDE_SETTINGS_PATH,
-  LOCAL_CLAUDE_SETTINGS_PATH,
   VERSION_CHECK_SCRIPT_NAME,
   VERSION_CHECK_INSTALL_PATH,
 } from "../../src/lib/constants.js";
@@ -251,16 +248,6 @@ describe("getInstalledVersion", () => {
   });
 });
 
-describe("getSettingsPath", () => {
-  it("returns global path when local is false", () => {
-    expect(getSettingsPath(false)).toBe(CLAUDE_SETTINGS_PATH);
-  });
-
-  it("returns local path when local is true", () => {
-    expect(getSettingsPath(true)).toBe(LOCAL_CLAUDE_SETTINGS_PATH);
-  });
-});
-
 // --- File I/O tests using a temp directory ---
 
 describe("readSettings / writeSettings", () => {
@@ -288,26 +275,6 @@ describe("readSettings / writeSettings", () => {
     fs.writeFileSync(tmpSettingsPath, JSON.stringify(settings, null, 2) + "\n");
     const raw = fs.readFileSync(tmpSettingsPath, "utf-8");
     expect(raw).toBe('{\n  "key": "value"\n}\n');
-  });
-
-  it("readSettings reads from custom path", () => {
-    const settings = { hooks: { PreToolUse: [] }, custom: true };
-    fs.writeFileSync(tmpSettingsPath, JSON.stringify(settings));
-    const result = readSettings(tmpSettingsPath);
-    expect(result).toEqual(settings);
-  });
-
-  it("readSettings returns empty object for non-existent custom path", () => {
-    const result = readSettings(path.join(tmpDir, "nonexistent.json"));
-    expect(result).toEqual({});
-  });
-
-  it("writeSettings writes to custom path and creates parent dirs", () => {
-    const nestedPath = path.join(tmpDir, "sub", "dir", "settings.json");
-    const settings = { key: "value" };
-    writeSettings(settings, nestedPath);
-    const content = JSON.parse(fs.readFileSync(nestedPath, "utf-8"));
-    expect(content).toEqual(settings);
   });
 });
 

@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   CLAUDE_SETTINGS_PATH,
-  LOCAL_CLAUDE_SETTINGS_PATH,
   HOOK_BINARY_NAME,
   HOOK_INSTALL_PATH,
   HOOK_MATCHER,
@@ -25,25 +24,19 @@ interface ClaudeSettings {
   [key: string]: unknown;
 }
 
-export function getSettingsPath(local: boolean): string {
-  return local ? LOCAL_CLAUDE_SETTINGS_PATH : CLAUDE_SETTINGS_PATH;
-}
-
-export function readSettings(settingsPath?: string): ClaudeSettings {
-  const filePath = settingsPath ?? CLAUDE_SETTINGS_PATH;
+export function readSettings(): ClaudeSettings {
   try {
-    const content = fs.readFileSync(filePath, "utf-8");
+    const content = fs.readFileSync(CLAUDE_SETTINGS_PATH, "utf-8");
     return JSON.parse(content);
   } catch {
     return {};
   }
 }
 
-export function writeSettings(settings: ClaudeSettings, settingsPath?: string): void {
-  const filePath = settingsPath ?? CLAUDE_SETTINGS_PATH;
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+export function writeSettings(settings: ClaudeSettings): void {
+  fs.mkdirSync(path.dirname(CLAUDE_SETTINGS_PATH), { recursive: true });
   fs.writeFileSync(
-    filePath,
+    CLAUDE_SETTINGS_PATH,
     JSON.stringify(settings, null, 2) + "\n",
     "utf-8"
   );

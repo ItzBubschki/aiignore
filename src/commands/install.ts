@@ -6,13 +6,9 @@ import { fileURLToPath } from "node:url";
 import chalk from "chalk";
 import {
   HOOKS_DIR,
-  LOCAL_HOOKS_DIR,
   HOOK_INSTALL_PATH,
-  LOCAL_HOOK_INSTALL_PATH,
   HOOK_SCRIPT_INSTALL_PATH,
-  LOCAL_HOOK_SCRIPT_INSTALL_PATH,
   VERSION_CHECK_INSTALL_PATH,
-  LOCAL_VERSION_CHECK_INSTALL_PATH,
 } from "../lib/constants.js";
 import {
   readSettings,
@@ -22,7 +18,6 @@ import {
   addHook,
   addVersionCheckHook,
   removeHook,
-  getSettingsPath,
 } from "../lib/claude-settings.js";
 import { installCompletions } from "../lib/completions.js";
 
@@ -88,34 +83,26 @@ function compileHook(hookSource: string, outPath: string): boolean {
   }
 }
 
-export async function install(options: { local?: boolean }, packageVersion: string): Promise<void> {
-  const local = options.local ?? false;
-  const settingsPath = getSettingsPath(local);
-  const settings = readSettings(settingsPath);
+export async function install(packageVersion: string): Promise<void> {
+  const settings = readSettings();
   const alreadyInstalled = isHookInstalled(settings);
 
-  // Pick paths based on local vs global
-  const hooksDir = local ? LOCAL_HOOKS_DIR : HOOKS_DIR;
-  const hookBinaryPath = local ? LOCAL_HOOK_INSTALL_PATH : HOOK_INSTALL_PATH;
-  const hookScriptPath = local ? LOCAL_HOOK_SCRIPT_INSTALL_PATH : HOOK_SCRIPT_INSTALL_PATH;
-  const versionCheckPath = local ? LOCAL_VERSION_CHECK_INSTALL_PATH : VERSION_CHECK_INSTALL_PATH;
-
   // Ensure hooks directory exists
-  fs.mkdirSync(hooksDir, { recursive: true });
+  fs.mkdirSync(HOOKS_DIR, { recursive: true });
 
   // Always install/update the hook binary
   const hookSource = findHookSource();
 
-  let hookCommand: string = hookBinaryPath;
+  let hookCommand: string = HOOK_INSTALL_PATH;
 
   if (bunAvailable()) {
-    compileHook(hookSource, hookBinaryPath);
+    compileHook(hookSource, HOOK_INSTALL_PATH);
   }
 
   // Fallback: install as a Node.js script if Bun isn't available or compilation failed
-  if (!fs.existsSync(hookBinaryPath)) {
-    fs.copyFileSync(hookSource, hookScriptPath);
-    hookCommand = `node "${hookScriptPath}"`;
+  if (!fs.existsSync(HOOK_INSTALL_PATH)) {
+    fs.copyFileSync(hookSource, HOOK_SCRIPT_INSTALL_PATH);
+    hookCommand = `node "${HOOK_SCRIPT_INSTALL_PATH}"`;
 
     console.log("");
     console.log(chalk.yellow.bold("⚠  Bun not found — installing hook as a Node.js script instead."));
@@ -132,7 +119,7 @@ export async function install(options: { local?: boolean }, packageVersion: stri
   // Always install/update the version check script
   const versionCheckSource = findVersionCheckSource();
   if (versionCheckSource) {
-    fs.copyFileSync(versionCheckSource, versionCheckPath);
+    fs.copyFileSync(versionCheckSource, VERSION_CHECK_INSTALL_PATH);
   }
 
   // Update settings: re-register hook with current version
@@ -142,9 +129,9 @@ export async function install(options: { local?: boolean }, packageVersion: stri
   }
   updated = addHook(updated, hookCommand, packageVersion);
   if (!isVersionCheckInstalled(updated) && versionCheckSource) {
-    updated = addVersionCheckHook(updated, versionCheckPath);
+    updated = addVersionCheckHook(updated);
   }
-  writeSettings(updated, settingsPath);
+  writeSettings(updated);
 
   // Install shell completions
   const completionResult = installCompletions();
@@ -164,9 +151,8 @@ export async function install(options: { local?: boolean }, packageVersion: stri
     );
   }
 
-  const target = local ? "local .claude/settings.json" : "~/.claude/settings.json";
   const action = alreadyInstalled ? "updated" : "installed";
-  console.log(chalk.green(`\nAI Guard v${packageVersion} ${action} successfully! (${target})\n`));
+  console.log(chalk.green(`\nAI Guard v${packageVersion} ${action} successfully! (~/.claude/settings.json)\n`));
   if (!alreadyInstalled) {
     console.log("Create a .aiignore file in any project to protect sensitive files:\n");
     console.log(chalk.dim('  echo ".env" >> .aiignore'));

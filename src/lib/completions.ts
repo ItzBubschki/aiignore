@@ -16,8 +16,6 @@ complete -c aiignore -n "__fish_use_subcommand" -a suggest -d "Auto-detect sensi
 complete -c aiignore -n "__fish_use_subcommand" -a add -d "Add patterns to .aiignore"
 complete -c aiignore -n "__fish_use_subcommand" -a list -d "Show all configured patterns"
 complete -c aiignore -n "__fish_use_subcommand" -a audit -d "Show recent blocked access attempts"
-complete -c aiignore -n "__fish_seen_subcommand_from install" -l local -d "Install hook config in local .claude/settings.json"
-complete -c aiignore -n "__fish_seen_subcommand_from uninstall" -l local -d "Remove hook config from local .claude/settings.json"
 complete -c aiignore -n "__fish_seen_subcommand_from add" -l local -d "Force add to local .aiignore"
 complete -c aiignore -n "__fish_seen_subcommand_from add" -l global -d "Force add to global ~/.aiignore"
 complete -c aiignore -n "__fish_seen_subcommand_from audit" -l lines -d "Number of entries to show" -r

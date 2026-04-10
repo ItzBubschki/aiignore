@@ -4,9 +4,6 @@ import {
   HOOK_INSTALL_PATH,
   HOOK_SCRIPT_INSTALL_PATH,
   VERSION_CHECK_INSTALL_PATH,
-  LOCAL_HOOK_INSTALL_PATH,
-  LOCAL_HOOK_SCRIPT_INSTALL_PATH,
-  LOCAL_VERSION_CHECK_INSTALL_PATH,
 } from "../lib/constants.js";
 import {
   readSettings,
@@ -14,14 +11,11 @@ import {
   isHookInstalled,
   removeHook,
   removeVersionCheckHook,
-  getSettingsPath,
 } from "../lib/claude-settings.js";
 import { uninstallCompletions } from "../lib/completions.js";
 
-export async function uninstall(options: { local?: boolean }): Promise<void> {
-  const local = options.local ?? false;
-  const settingsPath = getSettingsPath(local);
-  const settings = readSettings(settingsPath);
+export async function uninstall(): Promise<void> {
+  const settings = readSettings();
 
   if (!isHookInstalled(settings)) {
     console.log(chalk.yellow("AI Guard hook is not installed."));
@@ -31,14 +25,10 @@ export async function uninstall(options: { local?: boolean }): Promise<void> {
   // Remove hooks from settings
   let updated = removeHook(settings);
   updated = removeVersionCheckHook(updated);
-  writeSettings(updated, settingsPath);
+  writeSettings(updated);
 
-  // Delete the hook binary/scripts from the matching location
-  const paths = local
-    ? [LOCAL_HOOK_INSTALL_PATH, LOCAL_HOOK_SCRIPT_INSTALL_PATH, LOCAL_VERSION_CHECK_INSTALL_PATH]
-    : [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH];
-
-  for (const hookPath of paths) {
+  // Delete the hook binary/scripts
+  for (const hookPath of [HOOK_INSTALL_PATH, HOOK_SCRIPT_INSTALL_PATH, VERSION_CHECK_INSTALL_PATH]) {
     try {
       fs.unlinkSync(hookPath);
     } catch {
@@ -49,8 +39,7 @@ export async function uninstall(options: { local?: boolean }): Promise<void> {
   // Remove shell completions
   uninstallCompletions();
 
-  const target = local ? "local .claude/settings.json" : "~/.claude/settings.json";
-  console.log(chalk.green(`AI Guard hook has been uninstalled from ${target}.`));
+  console.log(chalk.green("AI Guard hook has been uninstalled from ~/.claude/settings.json."));
   console.log(
     chalk.dim(
       "Your .aiignore files have been kept — delete them manually if needed."
