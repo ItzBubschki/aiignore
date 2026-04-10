@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -16,9 +15,6 @@ import {
 import { installCompletions } from "../lib/completions.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-const require = createRequire(import.meta.url);
-const { version: packageVersion } = require("../../package.json");
 
 function findHookSource(): string {
   // 1. Pre-bundled hook (exists in dist/ after build, used by npx/npm)
@@ -81,7 +77,7 @@ function installScriptHook(hookSource: string): string {
   return `node "${HOOK_SCRIPT_INSTALL_PATH}"`;
 }
 
-export async function install(options: { local?: boolean }): Promise<void> {
+export async function install(options: { local?: boolean }, packageVersion: string): Promise<void> {
   const local = options.local ?? false;
   const settingsPath = getSettingsPath(local);
 

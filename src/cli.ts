@@ -21,7 +21,7 @@ program
   .command("install")
   .description("Install the Claude Code hook for .aiignore enforcement")
   .option("--local", "install hook config in local .claude/settings.json (project-level)")
-  .action(install);
+  .action((options) => install(options, version));
 
 program
   .command("uninstall")
